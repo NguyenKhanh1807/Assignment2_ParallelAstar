@@ -1,0 +1,57 @@
+% Section: optimizations (\input from main.tex)
+\section{Other Optimizations (optional)}
+\label{sec:opt}
+
+The lecture lists four directions for Assignment~2: priority queues with
+different synchronization schemes (Part~3), contraction hierarchies, pruning
+and labeling. This section covers the last three.
+
+\paragraph{ALT landmarks (labeling).} ALT (A*, Landmarks, Triangle
+inequality)~[4] improves the heuristic with precomputed
+distances. We pick $k$ landmarks by farthest-point selection and store the
+distances from and to every landmark $L$, computed with one forward and one
+reverse Dijkstra per landmark. The triangle inequality then gives
+\[
+  h(v) = \max\Bigl(h_{\mathrm{euclid}}(v),\;
+         \max_L \bigl(d(L,t) - d(L,v)\bigr),\;
+         \max_L \bigl(d(v,L) - d(t,L)\bigr)\Bigr),
+\]
+which is admissible and consistent (test T2 checks this on every edge). Each
+node thus carries a label of $2k$ distances. For $k=8$ the preprocessing takes
+0.2--0.7\,s and 26\,MB. Expansions fall from 25\,806 (Euclidean) to 12\,096,
+8\,696 and 7\,026 for $k = 4, 8, 16$, and query time by $1.7$--$2.1\times$
+(Table~\ref{tab:seq}); beyond 8 landmarks the cost of evaluating $h$ eats the
+savings. ALT also works in every parallel version, but it makes each search
+so short that no parallel version gets above $0.79\times$ the sequential speed
+with 2 or more threads.
+
+\paragraph{Pruning with an incumbent.} In all parallel versions, entries with
+$f \ge U$ are neither inserted nor expanded. In \HDA{}, a thread whose best
+local $f$ reaches $U$ discards its whole heap at once.
+
+\paragraph{Heuristic memoisation.} For a static heuristic, $h(v)$ is computed
+at most once per query and cached in an array of relaxed atomics that all
+threads share. Without the cache, a node's $h$ is evaluated again in the stale check of
+every pop. This matters for the costly heuristic, and the cache makes every
+version, sequential or parallel, pay for each $h(v)$ exactly once, so their
+times are comparable.
+
+\paragraph{$f$-window for \HDA.} Each \HDA{} thread publishes the $f$ of its best
+local node. A thread expands its node only if
+$f \le (1 + 0.03)\cdot \min_{\text{threads}} f$; otherwise it yields. This
+keeps all threads close to the global $f$-frontier and does not affect
+optimality, since it only delays expansions. It reduces the search overhead of
+\HDA{} under oversubscription from $8.3\times$ to $3.9\times$ at 4 threads on
+Platform~C, from $4.7\times$ to $2.2\times$ at 8 threads on B, and from
+$2.5\times$ to $1.5\times$ at 16 threads on A (Euclidean heuristic,
+Figure~\ref{fig:overhead}).
+
+\paragraph{Smaller items.} \HDA{} sends generated nodes in batches (one lock
+per destination per expansion), and threads that find no work back off
+exponentially and yield the CPU to threads that hold work.
+
+\paragraph{Contraction hierarchies.} We did not implement them. Preprocessing
+the 203\,k-node city graph would take seconds, but each query would shrink to
+a few hundred expansions, which leaves even less work to divide among threads. For a routing
+service, answering \emph{different} queries in parallel is then the better use
+of the cores.

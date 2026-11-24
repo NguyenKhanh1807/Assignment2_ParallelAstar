@@ -1,0 +1,10 @@
+\begin{tabular}{l rrrrr r}
+\toprule
+Heuristic & ms (A) & ms (C) & expanded & re-opened & mean & worst \\
+\midrule
+$h = 0$ (time-dependent Dijkstra) & 6.6 & 19.8 & 104{,}414 & 0 & 1.000 & 1.000 \\
+$h = d_{\mathrm{gc}} / v_{\max}$ & 4.3 & 12.8 & 44{,}367 & 0 & 1.000 & 1.000 \\
+$h = d_{\mathrm{road}} / v_{\max}$ (one reverse Dijkstra) & 2.0 & 5.7 & 25{,}439 & 0 & 1.000 & 1.000 \\
+$h = d_{\mathrm{gc}} / \mathit{speed}(t)$ (lecturer) & 4.5 & 16.2 & 62{,}804 & 45{,}665 & 1.045 & 1.288 \\
+\bottomrule
+\end{tabular}

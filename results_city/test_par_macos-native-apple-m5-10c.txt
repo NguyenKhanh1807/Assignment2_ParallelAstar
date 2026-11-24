@@ -1,0 +1,5 @@
+  10 pairs done, 440 runs, 0 failures
+  20 pairs done, 880 runs, 0 failures
+  30 pairs done, 1320 runs, 0 failures
+
+ALL PARALLEL A* TESTS PASSED (1320 runs, 0 failures)

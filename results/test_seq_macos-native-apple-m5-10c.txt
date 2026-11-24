@@ -1,0 +1,13 @@
+graph: 33718 nodes, 65356 edges
+[T1] consistency of Euclid heuristic on all edges
+[T2] ALT landmarks: consistency & admissibility
+[T3] A* vs Dijkstra on 300 random pairs x 3 metrics
+     avg expansions (length): Dijkstra 17730, A* 4708, ALT 1662
+[T4] uncertain / dynamic heuristics: optimal <= cost <= (1+eps)*optimal
+     eps=0.0  worst ratio: uncertain 1.0000, dynamic 1.0000
+     eps=0.1  worst ratio: uncertain 1.0000, dynamic 1.0000
+     eps=0.3  worst ratio: uncertain 1.0000, dynamic 1.0000
+     eps=0.6  worst ratio: uncertain 1.0095, dynamic 1.0220
+[T5] NAMOA* Pareto front (length, congested time)
+
+ALL SEQUENTIAL TESTS PASSED (0 failures)

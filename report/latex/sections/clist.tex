@@ -1,0 +1,181 @@
+% Section: clist (\input from main.tex)
+\section{The Concurrent Set Data Structure}
+\label{sec:clist}
+
+\subsection{Implementation}
+
+The set is a sorted singly linked list with two sentinel nodes, \texttt{head}
+(key $-\infty$) and \texttt{tail} (key $+\infty$), and offers \texttt{add},
+\texttt{remove} and \texttt{contains}~[1]. The assignment asks
+for two of the four synchronization strategies; we implemented all four,
+because Part~3 compares all of them as an open list. Each list is a template
+over its lock type. Each list also has a \texttt{removeMin} operation, which
+Part~3 needs to use the set as a priority queue.
+
+\paragraph{Coarse-grained.} One lock protects the whole list. Every operation
+is a sequential traversal inside one critical section.
+
+\paragraph{Fine-grained.} Every node has its own lock and a traversal uses
+\emph{hand-over-hand} locking: a thread locks the next node before releasing
+the current one, so it always holds two adjacent locks. Threads can work on
+different parts of the list at once, but they can never overtake each other.
+
+\paragraph{Optimistic.} A thread first searches without any locks, then locks
+the two nodes \texttt{pred} and \texttt{curr} it found, and finally
+\emph{validates} them by traversing from \texttt{head} again to check that
+\texttt{pred} is still reachable and still points to \texttt{curr}. If not, it
+releases the locks and retries.
+
+\paragraph{Lazy.} Each node has a \texttt{marked} flag. Removal first sets the
+flag (logical deletion) and then unlinks the node (physical deletion).
+Validation becomes a constant-time local check, and \texttt{contains} takes no
+locks at all and is wait-free:
+
+\begin{lstlisting}
+bool remove(Key k) {
+  for (Backoff b;; b.backoff()) {
+    Node* pred = head; Node* curr = pred->next.load(std::memory_order_acquire);
+    while (curr->key < k) { pred = curr; curr = curr->next.load(std::memory_order_acquire); }
+    pred->lock(); curr->lock();
+    if (!pred->marked && !curr->marked && pred->next == curr) {   // validate
+      bool ok = curr->key == k;
+      if (ok) {
+        curr->marked.store(true, std::memory_order_release);           // logical
+        pred->next.store(curr->next.load(), std::memory_order_release); // physical
+      }
+      curr->unlock(); pred->unlock();
+      if (ok) retire(curr);
+      return ok;
+    }
+    curr->unlock(); pred->unlock();                                  // retry
+  }
+}
+bool contains(Key k) {                                               // wait-free
+  Node* curr = head;
+  while (curr->key < k) curr = curr->next.load(std::memory_order_acquire);
+  return curr->key == k && !curr->marked.load(std::memory_order_acquire);
+}
+\end{lstlisting}
+
+\paragraph{Locks.} We used three locks: \texttt{std::mutex}; a TTAS spinlock;
+and a TTAS lock with \textbf{exponential backoff}, as in Assignment~1. After
+seeing the lock busy, or losing the race for it, a thread waits a random number
+of \texttt{pause}/\texttt{yield} instructions in $[0, \textit{limit})$ and
+doubles \textit{limit} up to 1\,024; at the cap it also calls
+\texttt{std::this\_thread::yield()}. The optimistic and lazy lists also back
+off after a failed validation.
+
+\paragraph{Memory ordering and reclamation.} \texttt{next} pointers and
+\texttt{marked} flags are \texttt{std::atomic}. Stores that publish a node use
+\texttt{release} and traversals use \texttt{acquire}, so a thread that reaches
+a node through a pointer also sees the node's key and successor. The lock-free
+traversals are therefore free of data races under the C++ memory model,
+including on ARM. A node unlinked by one thread may still be visited by a
+concurrent optimistic or lazy traversal, so it cannot be freed at once. Removed
+nodes are pushed onto a lock-free \emph{retired} stack and freed when the list
+is destroyed. A long-running service would need hazard pointers or epoch-based
+reclamation instead.
+
+\paragraph{\texttt{removeMin}.} The minimum is always the first node after
+\texttt{head}. Every variant locks \texttt{head} and that node (or, in the
+coarse list, the whole list), validates the pair as above, and unlinks the node.
+
+\subsection{Correctness testing}
+
+\texttt{test\_clist} runs every one of the 12 list/lock combinations with 1, 2,
+4 and 8 threads:
+
+\begin{itemize}[nosep]
+  \item \textbf{(a) Sequential specification.} 20\,000 random operations,
+        \texttt{removeMin} included, are compared with \texttt{std::set}.
+  \item \textbf{(b) Disjoint keys.} Each thread inserts and then removes its own
+        residue class of keys. The size, the order and finally the emptiness
+        of the list are checked.
+  \item \textbf{(c) Overlapping keys.} Threads run random
+        \texttt{add}/\texttt{remove}/\texttt{contains} on 64 shared keys and
+        count their \emph{successful} adds and removes per key. If the set is
+        linearizable, then for each key the initial membership plus all
+        successful adds minus all successful removes must be 0 or 1 and equal
+        its final membership. One lost update breaks this. Concurrently,
+        keys that are never removed must always be found and keys that are
+        never inserted must never be found.
+  \item \textbf{(d) Concurrent \texttt{removeMin}.} All threads drain 6\,000
+        keys. Every key must come out exactly once, and the keys each thread
+        receives must be strictly increasing.
+  \item \textbf{(e) Producers and consumers} exchange keys through
+        \texttt{add}/\texttt{removeMin}; nothing may be lost or duplicated.
+  \item \textbf{ThreadSanitizer.} The same tests built with
+        \texttt{-fsanitize=thread} report no data race.
+\end{itemize}
+
+All tests pass on all three platforms. Testing also exposed a performance
+problem: with plain TTAS locks and 8 threads on the 2 cores of Platform~C, the
+fine-grained list needed 97\,s for the test suite, against 1.6\,s with the
+backoff lock. A preempted thread holding a node lock blocks the whole
+hand-over-hand chain behind it, and the waiting threads burn their time slices
+spinning.
+
+\subsection{Results}
+
+\textbf{Usage scenario.} The set is an ordered in-memory index shared by the
+worker threads of a routing service, with keys in $[0, 1000)$ and the list
+pre-filled to half. Three workload mixes are measured:
+\emph{read} (90\% \texttt{contains}, 5\% \texttt{add}, 5\% \texttt{remove}),
+\emph{update} (50/25/25), and \emph{priority queue} (50\% \texttt{add}, 50\%
+\texttt{removeMin}), which is how Part~3 uses the list.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/fig5_clist.pdf}
+\caption{Part 2: throughput of the 12 list/lock combinations on the three
+platforms (rows) for the three workload mixes (columns). Median of 3 runs of
+0.4\,s. Colour: list; line style: lock. The shaded region marks
+oversubscription.}
+\label{fig:clist}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Part 2: throughput (million operations/s) for the read mix and the
+priority-queue mix. TTAS rows are omitted (see Figure~\ref{fig:clist}).}
+\label{tab:clist}
+\input{tables/tab_clist}
+\end{table}
+
+Figure~\ref{fig:clist} and Table~\ref{tab:clist} summarize the sweep.
+
+\textbf{Only the lazy list scales.} With the read mix, the lazy list goes from
+3.2 to 15.9\,Mops/s on Platform~A ($5\times$ at 16 threads) and from 3.3 to
+8.2\,Mops/s on Platform~B ($2.5\times$ at 4 threads). Its \texttt{contains}
+takes no lock, and \texttt{add}/\texttt{remove} lock only two neighbouring
+nodes after a lock-free search. The optimistic list scales less (1.6
+$\rightarrow$ 4.6\,Mops/s on A) because its validation traverses the list a
+second time. The coarse list cannot scale: with backoff it stays flat
+(4.9 $\rightarrow$ 4.4\,Mops/s on A), and with \texttt{std::mutex} it degrades.
+
+\textbf{The fine-grained list is the slowest.} A traversal of about 250 nodes
+acquires and releases about 250 locks, and because threads cannot overtake
+each other, the slowest thread sets the pace for all. Already at 2 threads it
+falls to 0.3\,Mops/s or less on every platform (read mix).
+
+\textbf{\texttt{removeMin} does not scale on any list.} In the priority-queue
+mix every \texttt{removeMin} needs the same two nodes at the head of the list,
+so the list behaves like one lock. Throughput drops as soon as a second thread
+arrives (on A, 66 $\rightarrow$ 17\,Mops/s with TTAS on the coarse list) and
+the variant with the cheapest critical section wins: the coarse list with
+backoff, which loses least (53 $\rightarrow$ 26\,Mops/s at 8 threads on A,
+and nearly flat at about 20\,Mops/s on C). This is the bottleneck that Part~3
+inherits.
+
+\textbf{Locks.} \texttt{std::mutex} collapses as soon as two threads contend on
+Linux (coarse list, priority-queue mix on B: 35.7 $\rightarrow$
+9.5\,Mops/s), because each contended hand-off puts a thread to sleep in the
+kernel and wakes it up again. Pure TTAS collapses under oversubscription
+(fine-grained list on A: 3.2 $\rightarrow$ 0.0\,Mops/s at 16 threads),
+because waiting threads spin while the lock holder is descheduled. TTAS with
+backoff is the best or nearly the best lock in almost every configuration. One
+exception is the lazy list on macOS, where \texttt{std::mutex} is as good as
+backoff (15.9 against 14.3\,Mops/s): the lazy list's locks are rarely
+contended, and Apple's mutex spins briefly before it sleeps.

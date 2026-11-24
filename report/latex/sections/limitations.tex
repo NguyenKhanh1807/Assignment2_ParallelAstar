@@ -1,0 +1,61 @@
+% Section: limitations (\input from main.tex)
+\section{Limitations and Threats to Validity}
+\label{sec:threats}
+
+\begin{itemize}
+  \item \textbf{Two platforms share one chip, and one is a VM.} Platforms A and
+        B both run on the same Apple M5, and Platforms B and C are virtual
+        machines whose virtual CPUs are scheduled by a hypervisor we do not
+        control. The study therefore covers fewer independent machines than
+        three bare-metal computers would.
+  \item \textbf{Different query sets.} \texttt{std::\allowbreak uniform\_int\_\allowbreak distribution}
+        differs between libc++ and libstdc++, so Platform~A answered other
+        random queries than B and C. Speed-ups are computed per platform and
+        remain comparable, but absolute times and expansion counts of A should
+        not be compared with B and C directly.
+  \item \textbf{Short runs.} A Part~3 configuration (20 queries) takes
+        19\,ms to 4.3\,s, so a single query often lasts only a few
+        milliseconds. At this scale, OS noise and CPU
+        frequency changes are visible. We report medians of 3 repetitions
+        only, without spread.
+  \item \textbf{Part~3 on Platforms~A and~C predates the final termination
+        rule.} An earlier version of the shared-OPEN search stopped when OPEN
+        was empty and a counter of busy threads was zero, read one after the
+        other. That left a rare race, which we never observed in normal runs
+        and could only trigger with injected delays; the \texttt{pending}
+        counter of Section~\ref{sec:par-adapt} removes it. Platform~B was
+        measured again with the final code: the times of the affected versions
+        changed by about 3\,\% (median), as much as those of the versions whose
+        code did not change, and every cost stayed optimal. The Part~3 times
+        and test runs of Platforms~A and~C in this report were taken with the
+        earlier version. The final code also passes \texttt{test\_par} on an
+        x86-64 Linux VM of the same kind as Platform~C.
+  \item \textbf{Thread start-up included.} Every parallel query creates and
+        joins its $T$ threads, which costs tens of microseconds per thread.
+        For short queries this is a noticeable part of the time and lowers
+        the measured speed-ups. A thread pool reused across queries would
+        remove it.
+  \item \textbf{Graph built without OSMnx.} Because Nominatim was blocked
+        and Overpass overloaded, the city graph comes from Geofabrik's extract
+        with our own filter and simplification, cut by a bounding box rather
+        than by the administrative boundary. It keeps service roads (except
+        parking aisles and driveways), which OSMnx's \texttt{drive} network
+        partly drops, so node counts differ from the lecturer's notebook.
+  \item \textbf{Unequal sweeps.} Part~3 used up to $2\times$ the hardware
+        threads, i.e.\ only $\{1,2,4\}$ on Platform~C, and left out the list
+        versions with $h = 0$ because they would run for hours.
+  \item \textbf{Synthetic parts of the workload.} The costly heuristic adds
+        artificial work to model an expensive predictor, the dynamic and
+        uncertain heuristics are noise models, and the congestion factors and
+        traffic jams are invented, and the lecturer's speed profile is the same on
+        every road. The road graph itself is real.
+  \item \textbf{Memory is reclaimed late.} Removed list nodes are freed only
+        when the list is destroyed. This is safe and fine for one search, but
+        a long-running server would need hazard pointers or epoch-based
+        reclamation.
+  \item \textbf{No tuning sweep.} The backoff limits (1\,024 for locks, 256
+        for validation retries) and the 3\% $f$-window were chosen once and not
+        tuned per platform.
+  \item \textbf{No thread pinning.} Threads were not pinned to cores, so on
+        Platform~A we cannot tell how many of them ran on efficiency cores.
+\end{itemize}

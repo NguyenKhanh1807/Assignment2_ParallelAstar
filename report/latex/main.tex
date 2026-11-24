@@ -1,0 +1,85 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage[parfill]{parskip}
+\usepackage{titlesec}
+\usepackage[expansion=false]{microtype}
+\usepackage[hidelinks]{hyperref}
+\emergencystretch=3em
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+% Float placement: fill pages with text, put float-only pages at the top
+% (default LaTeX centres them vertically, which leaves large white gaps).
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{14pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
+\setlength{\textfloatsep}{12pt plus 2pt minus 4pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\captionsetup{font=small,skip=4pt}
+
+% Section style matching the group template: "1. Title"
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{0.8em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection}{0.8em}{}
+
+\definecolor{codebg}{HTML}{F6F5F2}
+\definecolor{codekw}{HTML}{1C5CAB}
+\definecolor{codecm}{HTML}{6B6A66}
+\lstset{
+  language=C++, basicstyle=\ttfamily\footnotesize, backgroundcolor=\color{codebg},
+  keywordstyle=\color{codekw}\bfseries, commentstyle=\color{codecm}\itshape,
+  frame=single, rulecolor=\color{codebg}, framesep=4pt, xleftmargin=6pt, xrightmargin=6pt,
+  columns=fullflexible, keepspaces=true, breaklines=true, showstringspaces=false,
+  morekeywords={atomic,memory_order_acquire,memory_order_release,memory_order_relaxed,memory_order_acq_rel,uint64_t,Cost,Key}
+}
+
+% Placeholder marker for parts the group still has to fill in
+\newcommand{\todo}[1]{\textcolor{red!70!black}{\textbf{[TODO: #1]}}}
+
+\newcommand{\Astar}{A\textsuperscript{*}}
+\newcommand{\HDA}{HDA\textsuperscript{*}}
+\newcommand{\NAMOA}{NAMOA\textsuperscript{*}}
+
+\begin{document}
+
+\input{sections/titlepage}
+\tableofcontents
+\newpage
+
+\input{sections/introduction}
+\input{sections/setup}
+\input{sections/sequential}
+\input{sections/clist}
+\input{sections/parallel}
+\input{sections/optimizations}
+\input{sections/cross_platform}
+\input{sections/limitations}
+\input{sections/conclusion}
+\input{sections/references}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}

@@ -1,0 +1,5 @@
+platform,heuristic,avg_ms,avg_expanded,avg_reopened,avg_ratio,max_ratio,frac_suboptimal
+cloud-x86-2vcpu,exact length / vmax,5.7219,25438.9,0.0,1.000000,1.000000,0.0000
+cloud-x86-2vcpu,great-circle / vmax,12.8149,44366.9,0.0,1.000000,1.000000,0.0000
+cloud-x86-2vcpu,lecturer: great-circle / speed(t),16.2168,62804.2,45665.3,1.045464,1.287546,0.8738
+cloud-x86-2vcpu,zero (TD-Dijkstra),19.7544,104414.1,0.0,1.000000,1.000000,0.0000

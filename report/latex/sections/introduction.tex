@@ -1,0 +1,37 @@
+% Section: introduction (\input from main.tex)
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+
+A* is the standard algorithm for finding a shortest path between two places in
+a road network. It is a best-first search: it always expands the open node with
+the smallest estimate $f = g + h$, where $g$ is the cost already paid and $h$ is
+a heuristic estimate of the cost still to go. Making A* parallel is hard for
+exactly that reason: the whole search is organised around one global
+priority queue, and every thread wants the same minimum element. This report
+documents our implementation and evaluation of A* and of the data structures
+it needs, in C++17, following the four parts of Assignment~2:
+
+\begin{enumerate}[nosep]
+  \item \textbf{Sequential A*} on the real road network of urban Ho Chi Minh
+        City (203\,396 nodes), extended to a \emph{dynamic and uncertain}
+        heuristic, to the lecturer's time-dependent speed model, and to a
+        \emph{vector-valued} $f$ (multi-objective A*, \NAMOA). We also checked
+        the A* pseudocode of the lecture and the reference notebook
+        \texttt{osm-astar.ipynb}.
+  \item \textbf{A concurrent set as a sorted linked list} --- all four
+        synchronization strategies (coarse-grained, fine-grained,
+        optimistic, lazy), each with \texttt{std::mutex}, a TTAS spinlock
+        and a TTAS lock with exponential backoff.
+  \item \textbf{Parallel A*} --- the sequential algorithm and the sorted list
+        adapted so that they can be merged, compared with a locked binary heap
+        and with Hash-Distributed A* (\HDA).
+  \item \textbf{Other optimizations (optional)} --- ALT landmarks, incumbent
+        pruning, heuristic memoisation and a synchronisation window for \HDA.
+\end{enumerate}
+
+For every part we describe the algorithm and its memory-ordering choices, the
+test used to establish correctness, and a performance and scalability study on
+three shared-memory platforms. Section~\ref{sec:setup} describes the data and
+the shared methodology; Sections~\ref{sec:seq}--\ref{sec:opt} cover the four
+parts; Section~\ref{sec:cross} compares platforms and Section~\ref{sec:threats}
+discusses limitations.

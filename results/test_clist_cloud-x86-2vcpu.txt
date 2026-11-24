@@ -1,0 +1,54 @@
+== 1 threads
+  coarse-mutex           threads=1  0.01s
+  fine-mutex             threads=1  0.07s
+  optimistic-mutex       threads=1  0.04s
+  lazy-mutex             threads=1  0.02s
+  coarse-ttas            threads=1  0.02s
+  fine-ttas              threads=1  0.03s
+  optimistic-ttas        threads=1  0.03s
+  lazy-ttas              threads=1  0.02s
+  coarse-backoff         threads=1  0.03s
+  fine-backoff           threads=1  0.04s
+  optimistic-backoff     threads=1  0.02s
+  lazy-backoff           threads=1  0.01s
+== 2 threads
+  coarse-mutex           threads=2  0.10s
+  fine-mutex             threads=2  0.23s
+  optimistic-mutex       threads=2  0.11s
+  lazy-mutex             threads=2  0.05s
+  coarse-ttas            threads=2  0.07s
+  fine-ttas              threads=2  0.08s
+  optimistic-ttas        threads=2  0.05s
+  lazy-ttas              threads=2  0.03s
+  coarse-backoff         threads=2  0.08s
+  fine-backoff           threads=2  0.15s
+  optimistic-backoff     threads=2  0.08s
+  lazy-backoff           threads=2  0.04s
+== 4 threads
+  coarse-mutex           threads=4  0.24s
+  fine-mutex             threads=4  0.72s
+  optimistic-mutex       threads=4  0.25s
+  lazy-mutex             threads=4  0.15s
+  coarse-ttas            threads=4  0.52s
+  fine-ttas              threads=4  17.13s
+  optimistic-ttas        threads=4  0.23s
+  lazy-ttas              threads=4  0.13s
+  coarse-backoff         threads=4  0.27s
+  fine-backoff           threads=4  0.56s
+  optimistic-backoff     threads=4  0.21s
+  lazy-backoff           threads=4  0.11s
+== 8 threads
+  coarse-mutex           threads=8  1.21s
+  fine-mutex             threads=8  2.52s
+  optimistic-mutex       threads=8  0.96s
+  lazy-mutex             threads=8  0.52s
+  coarse-ttas            threads=8  4.57s
+  fine-ttas              threads=8  97.12s
+  optimistic-ttas        threads=8  1.49s
+  lazy-ttas              threads=8  0.65s
+  coarse-backoff         threads=8  1.65s
+  fine-backoff           threads=8  1.55s
+  optimistic-backoff     threads=8  0.87s
+  lazy-backoff           threads=8  0.44s
+
+ALL CONCURRENT LIST TESTS PASSED (0 failures)

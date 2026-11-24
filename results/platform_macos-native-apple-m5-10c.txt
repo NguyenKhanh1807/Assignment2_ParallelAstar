@@ -1,0 +1,11 @@
+platform=macos-native-apple-m5-10c (native macOS, Apple clang)
+ProductName:		macOS
+ProductVersion:		27.2
+BuildVersion:		26B123
+Darwin MacBook-Pro-cua-Nguyen.local 27.2.0 Darwin Kernel Version 27.2.0: Wed Oct 14 23:48:06 PDT 2026; root:xnu-13432.41.4~25/RELEASE_ARM64_T8142 arm64
+Apple clang version 21.0.0 (clang-2100.4.1.1)
+Apple M5
+hw.ncpu=10
+performance cores=4
+efficiency cores=6
+memory_bytes=17179869184

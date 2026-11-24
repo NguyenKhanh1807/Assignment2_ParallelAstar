@@ -1,0 +1,34 @@
+% Section: appendix (\input from main.tex)
+\section{Reproducing the Results}
+
+\begin{lstlisting}[language=bash]
+make                       # build all programs into bin/
+make test                  # correctness tests (Parts 1-3) on the small graph
+make tsan                  # the concurrent tests under ThreadSanitizer
+./run_all.sh <platform>    # Part 2 and the small graph -> results/
+./run_city.sh <platform>   # Parts 1 and 3 on the city graph -> results_city/
+bash run_mac.sh; bash run_mac_city.sh      # macOS: the same two steps
+# optional: rebuild data_city/ from Geofabrik's extract
+python3 scripts/pbf_to_graph.py vietnam-latest.osm.pbf data_city
+# figures, tables and PDF
+cd report/latex
+python3 scripts/make_figures.py ../../results_city ../../results ../../data_city figures
+python3 scripts/make_tables.py ../../results_city ../../results tables
+latexmk -pdf main.tex
+# the lecturer's example query
+./bin/route 10.768856 106.725019 10.839613 106.845798 --algo alt --data data_city
+\end{lstlisting}
+
+\section{Work Distribution}
+
+\begin{center}
+\begin{tabularx}{\linewidth}{l X}
+\toprule
+\textbf{Member} & \textbf{Contribution} \\
+\midrule
+Pham Hoang Son & \todo{contribution} \\
+Nguyen Hoang Nam & \todo{contribution} \\
+Nguyen Dinh Khanh & \todo{contribution}; Platforms~A and B (Apple M5) runs \\
+\bottomrule
+\end{tabularx}
+\end{center}

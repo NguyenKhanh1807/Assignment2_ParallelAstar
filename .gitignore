@@ -1,0 +1,18 @@
+# build output
+bin/
+
+# macOS
+.DS_Store
+
+# LaTeX build files
+report/latex/*.aux
+report/latex/*.log
+report/latex/*.out
+report/latex/*.toc
+report/latex/*.fls
+report/latex/*.fdb_latexmk
+report/latex/*.synctex.gz
+
+# Python
+__pycache__/
+.ipynb_checkpoints/

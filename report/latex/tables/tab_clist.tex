@@ -1,0 +1,37 @@
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+ & \multicolumn{5}{c}{90\% \texttt{contains} (threads)} & \multicolumn{5}{c}{\texttt{add}/\texttt{removeMin} (threads)} \\
+\cmidrule(lr){2-6}\cmidrule(lr){7-11}
+List / lock & 1 & 2 & 4 & 8 & 16 & 1 & 2 & 4 & 8 & 16 \\
+\midrule
+\multicolumn{11}{l}{\emph{Platform A (macOS, Apple M5)}} \\
+Coarse, \texttt{std::mutex} & 5.1 & 2.3 & 1.6 & 1.4 & 1.8 & 55.6 & 26.0 & 19.2 & 13.3 & 14.9 \\
+Coarse, TTAS+backoff & 4.9 & 4.7 & 4.6 & 4.0 & 4.4 & 53.4 & 39.1 & 30.7 & 25.8 & 34.7 \\
+Fine-grained, \texttt{std::mutex} & 1.1 & 0.2 & 0.3 & 0.2 & 0.2 & 33.8 & 13.1 & 6.3 & 2.0 & 0.9 \\
+Fine-grained, TTAS+backoff & 1.5 & 0.3 & 0.3 & 0.1 & 0.2 & 46.1 & 11.6 & 8.5 & 8.2 & 10.5 \\
+Optimistic, \texttt{std::mutex} & 1.6 & 2.5 & 4.1 & 4.6 & 5.2 & 34.2 & 14.2 & 8.7 & 4.8 & 4.1 \\
+Optimistic, TTAS+backoff & 1.6 & 2.1 & 3.3 & 4.3 & 4.6 & 49.8 & 16.6 & 10.5 & 8.4 & 11.0 \\
+Lazy, \texttt{std::mutex} & 3.2 & 5.8 & 10.2 & 14.3 & 15.9 & 35.5 & 14.4 & 8.8 & 4.9 & 4.4 \\
+Lazy, TTAS+backoff & 3.3 & 5.5 & 7.8 & 12.2 & 14.3 & 50.8 & 16.6 & 12.0 & 10.4 & 12.9 \\
+\midrule
+\multicolumn{11}{l}{\emph{Platform B (Linux VM, 4 vCPU)}} \\
+Coarse, \texttt{std::mutex} & 3.4 & 1.2 & 0.7 & 0.5 & -- & 35.7 & 9.5 & 11.9 & 11.5 & -- \\
+Coarse, TTAS+backoff & 3.4 & 2.6 & 2.1 & 2.0 & -- & 44.4 & 33.5 & 27.9 & 31.3 & -- \\
+Fine-grained, \texttt{std::mutex} & 1.2 & 0.3 & 0.2 & 0.2 & -- & 25.2 & 7.5 & 7.0 & 6.9 & -- \\
+Fine-grained, TTAS+backoff & 2.6 & 0.3 & 0.4 & 0.3 & -- & 31.1 & 13.6 & 9.6 & 10.5 & -- \\
+Optimistic, \texttt{std::mutex} & 1.5 & 2.2 & 2.7 & 1.8 & -- & 29.8 & 7.8 & 8.8 & 9.6 & -- \\
+Optimistic, TTAS+backoff & 1.6 & 2.1 & 4.5 & 3.4 & -- & 35.3 & 14.6 & 10.2 & 11.4 & -- \\
+Lazy, \texttt{std::mutex} & 3.2 & 4.7 & 7.1 & 7.4 & -- & 28.0 & 7.9 & 8.7 & 9.4 & -- \\
+Lazy, TTAS+backoff & 3.3 & 5.5 & 8.2 & 7.8 & -- & 41.7 & 15.2 & 10.3 & 11.5 & -- \\
+\midrule
+\multicolumn{11}{l}{\emph{Platform C (Linux, Xeon, 2 vCPU)}} \\
+Coarse, \texttt{std::mutex} & 1.8 & 0.4 & 1.2 & 1.6 & -- & 18.4 & 4.8 & 11.9 & 11.0 & -- \\
+Coarse, TTAS+backoff & 2.2 & 1.9 & 1.7 & 1.1 & -- & 20.6 & 19.7 & 19.7 & 19.1 & -- \\
+Fine-grained, \texttt{std::mutex} & 0.2 & 0.2 & 0.1 & 0.1 & -- & 9.9 & 2.0 & 8.6 & 8.4 & -- \\
+Fine-grained, TTAS+backoff & 0.5 & 0.2 & 0.2 & 0.1 & -- & 14.5 & 8.3 & 8.3 & 8.3 & -- \\
+Optimistic, \texttt{std::mutex} & 1.1 & 1.3 & 1.1 & 0.8 & -- & 11.7 & 3.5 & 10.5 & 9.5 & -- \\
+Optimistic, TTAS+backoff & 1.1 & 1.4 & 1.0 & 1.0 & -- & 15.5 & 8.6 & 10.5 & 9.7 & -- \\
+Lazy, \texttt{std::mutex} & 2.0 & 3.0 & 2.2 & 2.0 & -- & 12.6 & 3.0 & 10.1 & 9.2 & -- \\
+Lazy, TTAS+backoff & 2.2 & 3.1 & 2.4 & 2.0 & -- & 18.6 & 10.7 & 8.4 & 9.3 & -- \\
+\bottomrule
+\end{tabular}

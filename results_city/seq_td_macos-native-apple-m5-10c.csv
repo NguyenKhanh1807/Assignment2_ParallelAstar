@@ -1,0 +1,5 @@
+platform,heuristic,avg_ms,avg_expanded,avg_reopened,avg_ratio,max_ratio,frac_suboptimal
+macos-native-apple-m5-10c,exact length / vmax,2.0129,24493.2,0.0,1.000000,1.000000,0.0000
+macos-native-apple-m5-10c,great-circle / vmax,4.3463,40292.3,0.0,1.000000,1.000000,0.0000
+macos-native-apple-m5-10c,lecturer: great-circle / speed(t),4.5036,43617.7,28418.2,1.046478,1.233448,0.9100
+macos-native-apple-m5-10c,zero (TD-Dijkstra),6.5752,97164.7,0.0,1.000000,1.000000,0.0000

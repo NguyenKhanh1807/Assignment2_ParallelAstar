@@ -1,0 +1,43 @@
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+ & \multicolumn{5}{c}{Euclidean $h$ (threads)} & \multicolumn{5}{c}{costly $h$ (threads)} \\
+\cmidrule(lr){2-6}\cmidrule(lr){7-11}
+Version & 1 & 2 & 4 & 8 & 16 & 1 & 2 & 4 & 8 & 16 \\
+\midrule
+\multicolumn{11}{l}{\emph{Platform A (macOS, Apple M5)}} \\
+sequential A* & 40 &  &  &  &  & 169 &  &  &  &  \\
+list: coarse & 115 & 157 & 218 & 353 & 312 & 224 & 198 & 231 & 442 & 429 \\
+list: fine & 265 & 1229 & 1379 & 2374 & 2674 & 390 & 1303 & 1376 & 2267 & 2002 \\
+list: optimistic & 246 & 195 & 153 & 241 & 241 & 369 & 238 & 171 & 247 & 244 \\
+list: lazy & 143 & 154 & 147 & 243 & 221 & 266 & 189 & \textbf{152} & 239 & 216 \\
+list: lazy, \texttt{std::mutex} & 156 & 276 & 273 & 442 & 428 & 279 & 298 & 285 & 475 & 451 \\
+shared heap & \textbf{37} & 95 & 145 & 147 & 132 & \textbf{157} & \textbf{133} & \textbf{145} & 193 & \textbf{160} \\
+shared heap, \texttt{std::mutex} & \textbf{40} & 96 & 151 & 228 & 210 & \textbf{158} & 246 & 251 & 409 & 346 \\
+HDA* & 45 & 97 & 105 & 200 & 373 & \textbf{163} & \textbf{149} & \textbf{125} & 205 & 670 \\
+HDA* + $f$-window & 44 & 102 & 107 & 200 & 248 & \textbf{164} & \textbf{154} & \textbf{127} & 206 & 255 \\
+\midrule
+\multicolumn{11}{l}{\emph{Platform B (Linux VM, 4 vCPU)}} \\
+sequential A* & 39 &  &  &  &  & 143 &  &  &  &  \\
+list: coarse & 166 & 231 & 319 & 294 & -- & 273 & 338 & 370 & 386 & -- \\
+list: fine & 190 & 1394 & 1101 & 1370 & -- & 298 & 1433 & 1065 & 1385 & -- \\
+list: optimistic & 309 & 259 & 181 & 183 & -- & 390 & 308 & 200 & 203 & -- \\
+list: lazy & 164 & 188 & 150 & 145 & -- & 273 & 223 & 163 & 160 & -- \\
+list: lazy, \texttt{std::mutex} & 194 & 191 & 179 & 179 & -- & 287 & 235 & 195 & 191 & -- \\
+shared heap & \textbf{37} & 74 & 126 & 109 & -- & \textbf{141} & 164 & 178 & 181 & -- \\
+shared heap, \texttt{std::mutex} & \textbf{38} & 127 & 137 & 154 & -- & \textbf{143} & 270 & 252 & 258 & -- \\
+HDA* & 46 & 86 & 87 & 343 & -- & 148 & \textbf{119} & \textbf{99} & 434 & -- \\
+HDA* + $f$-window & 55 & 92 & 89 & 181 & -- & 148 & \textbf{122} & \textbf{101} & 222 & -- \\
+\midrule
+\multicolumn{11}{l}{\emph{Platform C (Linux, Xeon, 2 vCPU)}} \\
+sequential A* & 91 &  &  &  &  & 464 &  &  &  &  \\
+list: coarse & 360 & 624 & 636 & -- & -- & 699 & 902 & 900 & -- & -- \\
+list: fine & 907 & 2329 & 2831 & -- & -- & 1232 & 2368 & 2904 & -- & -- \\
+list: optimistic & 673 & 638 & 723 & -- & -- & 953 & 834 & 867 & -- & -- \\
+list: lazy & 367 & 456 & 446 & -- & -- & 727 & 656 & 624 & -- & -- \\
+list: lazy, \texttt{std::mutex} & 455 & 490 & 581 & -- & -- & 848 & 686 & 703 & -- & -- \\
+shared heap & 91 & 176 & 188 & -- & -- & 486 & \textbf{302} & \textbf{278} & -- & -- \\
+shared heap, \texttt{std::mutex} & \textbf{91} & 455 & 157 & -- & -- & 501 & 549 & \textbf{400} & -- & -- \\
+HDA* & 100 & 257 & 1449 & -- & -- & 518 & \textbf{326} & 1996 & -- & -- \\
+HDA* + $f$-window & 108 & 214 & 730 & -- & -- & 477 & \textbf{352} & 999 & -- & -- \\
+\bottomrule
+\end{tabular}

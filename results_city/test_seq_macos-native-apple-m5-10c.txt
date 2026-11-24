@@ -1,0 +1,16 @@
+graph: 203396 nodes, 455837 edges
+[T1] consistency of Euclid heuristic on all edges
+[T2] ALT landmarks: consistency & admissibility
+[T3] A* vs Dijkstra on 300 random pairs x 3 metrics
+     avg expansions (length): Dijkstra 104916, A* 23738, ALT 7953
+[T4] uncertain / dynamic heuristics: optimal <= cost <= (1+eps)*optimal
+     eps=0.0  worst ratio: uncertain 1.0000, dynamic 1.0000
+     eps=0.1  worst ratio: uncertain 1.0000, dynamic 1.0000
+     eps=0.3  worst ratio: uncertain 1.0000, dynamic 1.0000
+     eps=0.6  worst ratio: uncertain 1.0000, dynamic 1.0000
+[T5] NAMOA* Pareto front (length, congested time)
+[T6] time-dependent A* (lecturer's speed profile)
+     FIFO violations: integrated model 0, departure-speed model (original notebook) 12621 of 200000
+     lecturer's h = d/speed(t): sub-optimal on 82 of 100 queries
+
+ALL SEQUENTIAL TESTS PASSED (0 failures)

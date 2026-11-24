@@ -1,0 +1,233 @@
+% Section: sequential (\input from main.tex)
+\section{A* in the Sequential World}
+\label{sec:seq}
+
+\subsection{Implementation}
+
+\texttt{astar()} is the textbook algorithm. OPEN is a binary heap of
+$(f, v)$ pairs with lazy deletion: instead of decreasing a key, a node is
+pushed again and outdated entries are skipped when popped. $g$-values and
+parent pointers are arrays indexed by node. The function is a template over
+the heuristic and the edge-weight functor, so the same code serves every
+variant in this section, including the dynamic ones:
+
+\begin{lstlisting}
+while (!open.empty()) {
+  auto [f, u] = open.top(); open.pop();
+  if (closed[u]) continue;                                   // duplicate entry
+  if (H::dynamic) {                                          // h may have changed
+    Cost fnow = g[u] + h(u);
+    if (fnow > f && !open.empty() && fnow > open.top().first) {
+      open.push({fnow, u}); continue;                        // lazy re-keying
+    }
+  } else if (f > g[u] + h(u)) continue;                      // outdated entry
+  closed[u] = 1; h.tick();
+  if (u == t) break;
+  for (auto e = G.begin(u); e != G.end(u); ++e) {
+    Cost ng = g[u] + W(*e);
+    if (ng < g[e->to]) {
+      if (closed[e->to]) closed[e->to] = 0;                  // re-open
+      g[e->to] = ng; parent[e->to] = u; open.push({ng + h(e->to), e->to});
+    }
+  }
+}
+\end{lstlisting}
+
+\paragraph{Heuristic.} The default $h$ is the great-circle (haversine) distance
+to the target. For the time metric it is divided by $v_{\max}$, the highest
+speed that occurs anywhere in the graph. Edge costs are rounded \emph{up} to
+whole millimetres or milliseconds and $h$ is rounded \emph{down}, so $h$ is
+admissible and consistent by construction; Section~\ref{sec:seq-test} checks
+this on every edge. A consistent $h$ never re-opens a closed node, so the
+re-opening branch above is needed only for the heuristics of
+Section~\ref{sec:seq-dyn}.
+
+\input{sections/lecture_review}
+
+\subsection{Dynamic and uncertain heuristic}
+\label{sec:seq-dyn}
+
+In a live navigation system the remaining cost comes from a predictor that is
+noisy and changes while the search runs. We model both effects:
+
+\begin{itemize}[nosep]
+  \item \textbf{Uncertain $h$:} $h(v) = h_0(v)\,(1 + \varepsilon U)$ with
+        $U \sim \mathcal{U}(-1, 1)$ drawn \emph{at every evaluation}. Two
+        evaluations of the same node can return different values, like a
+        noisy sensor.
+  \item \textbf{Dynamic $h$:} $h_k(v) = h_0(v)\,\lambda(k)$ with
+        $\lambda(k) = 1 + \varepsilon \sin(2\pi k/300)$, where $k$ is the
+        number of expansions so far. This is a traffic forecast that is
+        refreshed periodically during the search.
+\end{itemize}
+
+Both heuristics break the assumptions of textbook A* in three ways, and the
+code handles each of them:
+
+\begin{enumerate}[nosep]
+  \item $h$ is no longer consistent and can over-estimate by up to a factor
+        $1+\varepsilon$. A node can then be reached later with a smaller $g$,
+        so closed nodes must be \textbf{re-opened}.
+  \item The key stored in OPEN becomes \textbf{stale} when $h$ changes. On
+        every pop the key is recomputed with the current $h$. If it is now
+        larger than the next key in the heap, the node is pushed back instead
+        of being expanded (lazy re-keying).
+  \item The returned cost is recomputed along the final parent chain, because
+        a re-opened ancestor may have improved after the goal was reached.
+\end{enumerate}
+
+Since $h \le (1+\varepsilon)\,h^*$ for every evaluation, the usual
+weighted-A* argument bounds the result: $C^* \le C \le (1+\varepsilon)\,C^*$.
+
+\input{sections/td}
+
+\subsection{\texorpdfstring{Vector-valued $f$}{Vector-valued f}: multi-objective A*}
+
+With a vector-valued $f$ there is no single optimum. The goal becomes the set
+of \textbf{Pareto-optimal} routes, i.e.\ routes that no other route beats in
+every objective. We minimise \textbf{(length, congested travel time)}. The two
+objectives conflict: short routes use small streets, fast routes use main roads
+that are congested at rush hour.
+
+We implement \NAMOA{}~[3]. The scalar $g(v)$ becomes two sets of
+non-dominated cost vectors per node, $G_{op}(v)$ and $G_{cl}(v)$. A new label
+$(g, v)$ is generated only if no label already stored at $v$ weakly dominates
+$g$, and it deletes the labels it dominates. A label is also discarded if its
+$f = g + (h_{\mathrm{len}}, h_{\mathrm{time}})$ is weakly dominated by a
+solution already found. OPEN is ordered lexicographically by $f$, and the
+search stops when OPEN is empty. Every label that reaches the target is a
+Pareto-optimal solution, and its parent chain gives the route.
+
+\subsection{Correctness testing}
+\label{sec:seq-test}
+
+\texttt{test\_seq} checks six properties. Dijkstra serves as the oracle; it is
+simple enough to trust, and the other algorithms must match it exactly.
+
+\begin{itemize}[nosep]
+  \item \textbf{T1 Consistency of $h$, exhaustively.} For 5 targets and all 3
+        metrics, $h(u) \le w(u,v) + h(v)$ is checked on every one of the
+        455\,837 edges.
+  \item \textbf{T2 ALT heuristic} (Section~\ref{sec:opt}): consistency on
+        every edge, and admissibility against exact distances from a
+        reverse Dijkstra.
+  \item \textbf{T3 Differential test.} For 300 random pairs and 3 metrics,
+        A* (Euclidean and ALT) must return Dijkstra's cost exactly. The path
+        must be a real walk from $s$ to $t$ whose edge costs sum to the
+        returned cost, and a consistent $h$ must never re-open a node.
+  \item \textbf{T4 Bounded sub-optimality.} For
+        $\varepsilon\in\{0, 0.1, 0.3, 0.6\}$ and 100 pairs each, both inexact
+        heuristics must return a valid path with
+        $C^* \le C \le (1+\varepsilon)C^*$, and exactly $C^*$ when
+        $\varepsilon=0$.
+  \item \textbf{T5 \NAMOA.} For 25 pairs, the front must equal the one found
+        by an exhaustive search with $h=0$ point by point. Its points must not
+        dominate each other, the cost of each returned path must equal its
+        vector, both single-objective optima must be end points of the front,
+        and for 16 integer weights $(a,b)$ the best $a\cdot\mathrm{length} +
+        b\cdot\mathrm{time}$ on the front must equal an independent Dijkstra
+        run on that weighted sum.
+  \item \textbf{T6 Time-dependent A*} (Section~\ref{sec:seq-td}): FIFO on
+        200\,000 random cases, and agreement with an independent oracle on 100
+        queries at random departure times.
+\end{itemize}
+
+All six tests pass on all three platforms.
+
+\subsection{Results}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Part 1: exact sequential algorithms, mean over 200 random queries.
+Platforms B and C answer the same queries, so their expansion counts are
+identical; Platform A uses a different query set (Section~\ref{sec:setup}).}
+\label{tab:seq}
+\input{tables/tab_seq}
+\end{table}
+
+\textbf{The heuristic matters more than the hardware.} For length, the
+straight-line heuristic cuts expansions $4.0\times$ (104\,414 $\rightarrow$
+25\,806) and ALT with 8 landmarks a further $3.0\times$, $12\times$ in total.
+Query time follows: 15.8 $\rightarrow$ 3.8\,ms on C and 6.1 $\rightarrow$
+1.3\,ms on B. More landmarks still reduce expansions (16 landmarks: 7\,026),
+but each evaluation of $h$ then costs more, so ALT-16 is no faster than ALT-8.
+For travel time the straight-line bound is weak ($1.5\times$ fewer
+expansions), because $v_{\max}$ comes from a few fast trunk-road segments, and
+the saved expansions do not pay for computing $h$ (B: 7.1 against 7.0\,ms).
+Platform~A answers a query 1.0--1.2$\times$ faster than the Linux VM on the
+same chip and about $3\times$ faster than the cloud Xeon (A uses a different
+query set; Section~\ref{sec:setup}).
+
+\begin{table}[H]
+\centering
+\small
+\caption{Part 1: uncertain and dynamic heuristics, length metric, 200 queries
+on Platform~C. ``mean'' and ``worst'' are cost divided by the optimum;
+expanded and re-opened are means per query. The bound is $1+\varepsilon$.}
+\label{tab:eps}
+\input{tables/tab_eps}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/fig2_eps.pdf}
+\caption{Part 1: quality and effort of the inexact heuristics as the error
+$\varepsilon$ grows (Platform~C). Dotted line: the guaranteed bound.}
+\label{fig:eps}
+\end{figure}
+
+\textbf{The loss stays far below the bound.} Up to $\varepsilon=0.3$ the mean
+loss is about 2\,\% and the worst case is 9.9\,\% (uncertain) and 11.9\,\%
+(dynamic), against a guaranteed 30\,\%. Even at $\varepsilon=2$ the worst
+route is 1.90$\times$ the optimum, not 3$\times$. The guarantee is
+pessimistic because the error only hurts when the heuristic over-estimates on
+the nodes of the optimal path. \textbf{The effort, however, rises sharply.}
+Re-openings and stale keys cost so much extra work that the inexact searches
+always expand more nodes than A* with the exact straight-line heuristic: 36\,539
+(uncertain) and 32\,040 (dynamic) at $\varepsilon=0.3$, and 87\,937 at
+$\varepsilon=1$, against 25\,806. The dynamic heuristic needs far more lazy
+re-keying than the uncertain one (81\,446 against 13\,064 stale pops per query
+at $\varepsilon=0.3$), because its error drifts in one direction for hundreds
+of expansions. For travel time the loss is smaller still: the time heuristic
+is so weak that even a doubled estimate rarely over-estimates (worst case 1.15
+at $\varepsilon=2$).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/fig3_namoa.pdf}
+\caption{Part 1: \NAMOA{} on 40 queries of increasing distance (Platform~C):
+size of the Pareto front (left), run time against the uninformed search with
+$h=0$ (middle), and the largest front found (right).}
+\label{fig:namoa}
+\end{figure}
+
+\textbf{Vector-valued $f$.} The number of Pareto-optimal routes ranges from 1
+to 22 (median 2) and depends on the shape of the city between $s$ and $t$ more
+than on the distance. When main roads and side streets run parallel, many
+trade-offs exist; otherwise one route is best in both objectives. The front
+size decides the cost: on Platform~C the query with 22 routes takes 22.6\,ms,
+while queries with a single Pareto-optimal route take 0.8--14\,ms. The vector
+heuristic makes \NAMOA{} expand $1.7\times$ fewer labels (median) than the
+same search with $h=0$, and the exhaustive cross-checks of T5 found no
+difference between the two fronts.
+
+\paragraph{Dynamic world: re-planning while driving.} To use A* in a world
+that changes, we simulated 40 trips of at least 3.5\,km on the travel-time
+metric. Every 15 driven edges, three traffic jams (3--8$\times$ slower, radius
+300\,m) appear on the road ahead. Strategy~1 keeps following the initial plan.
+Strategy~2 re-plans with A* from the current position after each update; a
+jam only increases costs, so the straight-line $h$ stays admissible.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/fig4_dynamic.pdf}
+\caption{Part 1: travel time of 40 simulated trips when traffic jams appear
+while driving (Platform~C).}
+\label{fig:dynamic}
+\end{figure}
+
+Re-planning reduces the mean trip from 125.5 to 45.9 minutes (free-flow time
+26.6 minutes) and is never worse than following the initial plan. It needs on
+average 16.5 re-plans per trip of 16.5\,ms each on Platform~C (6.0\,ms on B),
+which is fast enough to run on every traffic update.

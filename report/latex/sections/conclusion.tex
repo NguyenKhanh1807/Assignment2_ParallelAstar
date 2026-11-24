@@ -1,0 +1,40 @@
+% Section: conclusion (\input from main.tex)
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+We implemented sequential A* on a 203\,396-node road graph of urban Ho Chi
+Minh City built from OpenStreetMap, extended it to uncertain and dynamic
+heuristics, to the lecturer's time-dependent speed model and to a
+vector-valued $f$ (\NAMOA), implemented the four sorted-list concurrent sets
+with three locks each, and combined both into parallel A*, alongside a locked
+heap and \HDA. We also checked the lecture's pseudocode and reference notebook,
+found ten problems in the notebook (the most serious makes every road segment
+cost 1\,m) and provide a corrected, tested version. Every exact algorithm was
+checked against an independent oracle for exact cost equality on thousands of
+random queries, and the concurrent code also under ThreadSanitizer; all tests
+pass on all three platforms. The study supports five conclusions:
+
+\begin{enumerate}[nosep]
+  \item \textbf{A better heuristic beats more threads.} ALT landmarks make a
+        query $12\times$ smaller than Dijkstra; no parallel version of a
+        single query came close to that gain.
+  \item \textbf{Inexact heuristics cost effort, not much quality.} Uncertain
+        and dynamic heuristics lose far less than their bound $1+\varepsilon$,
+        but the re-openings they cause make the search slower. The lecturer's
+        $h = d/\mathit{speed}(t)$ is not admissible and returns a slower route
+        in most runs (87--91\%); dividing by the maximum speed fixes this.
+  \item \textbf{The lazy list is the concurrent set that scales.} Its wait-free
+        \texttt{contains} reaches $5\times$ on 10 cores. Fine-grained locking
+        is the slowest design, and spinning without backoff collapses
+        whenever threads outnumber cores.
+  \item \textbf{A sorted list is a poor open list.} \texttt{removeMin} always
+        contends at the head and insertion is linear. A list-based parallel A*
+        is correct after four adaptations, but only the lazy list on 4 cores
+        with an expensive heuristic beat sequential A* ($1.11\times$).
+  \item \textbf{Parallel A* needs coarse work per node.} On a road graph a node
+        expansion takes less than a microsecond, and with a cheap heuristic
+        every parallel version loses to sequential A*. With an expensive
+        heuristic, \HDA{} and the shared heap reach $1.35$--$1.67\times$. For
+        many short queries, running different queries in parallel is the
+        better use of the cores.
+\end{enumerate}

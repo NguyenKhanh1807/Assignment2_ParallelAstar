@@ -1,0 +1,16 @@
+\begin{tabular}{ll rr rrr}
+\toprule
+ & & \multicolumn{2}{c}{expanded nodes} & \multicolumn{3}{c}{time per query (ms)} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-7}
+Metric & Algorithm & A & B, C & A & B & C \\
+\midrule
+length & Dijkstra & 97{,}165 & 104{,}414 & 5.337 & 6.131 & 15.832 \\
+ & A*{,} Euclidean $h$ & 22{,}521 & 25{,}806 & 2.159 & 2.656 & 6.366 \\
+ & A*{,} ALT 4 landmarks & 11{,}628 & 12{,}096 & 1.428 & 1.504 & 4.109 \\
+ & A*{,} ALT 8 landmarks & 7{,}922 & 8{,}696 & 1.161 & 1.271 & 3.751 \\
+ & A*{,} ALT 16 landmarks & 6{,}424 & 7{,}026 & 1.365 & 1.349 & 3.727 \\
+\midrule
+time & Dijkstra & 97{,}818 & 105{,}138 & 6.003 & 6.996 & 19.440 \\
+ & A*{,} Euclidean $h$ & 66{,}190 & 71{,}671 & 5.877 & 7.111 & 18.710 \\
+\bottomrule
+\end{tabular}

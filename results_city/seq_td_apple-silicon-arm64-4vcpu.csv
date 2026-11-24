@@ -1,0 +1,5 @@
+platform,heuristic,avg_ms,avg_expanded,avg_reopened,avg_ratio,max_ratio,frac_suboptimal
+apple-silicon-arm64-4vcpu,exact length / vmax,2.4733,25438.9,0.0,1.000000,1.000000,0.0000
+apple-silicon-arm64-4vcpu,great-circle / vmax,5.4156,44366.9,0.0,1.000000,1.000000,0.0000
+apple-silicon-arm64-4vcpu,lecturer: great-circle / speed(t),7.3810,62804.2,45665.3,1.045464,1.287546,0.8738
+apple-silicon-arm64-4vcpu,zero (TD-Dijkstra),8.1386,104414.1,0.0,1.000000,1.000000,0.0000

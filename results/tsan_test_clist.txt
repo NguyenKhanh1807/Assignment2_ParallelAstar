@@ -1,0 +1,29 @@
+== 1 threads
+  coarse-mutex           threads=1  0.41s
+  fine-mutex             threads=1  1.17s
+  optimistic-mutex       threads=1  0.67s
+  lazy-mutex             threads=1  0.44s
+  coarse-backoff         threads=1  0.31s
+  fine-backoff           threads=1  1.13s
+  optimistic-backoff     threads=1  0.62s
+  lazy-backoff           threads=1  0.36s
+== 2 threads
+  coarse-mutex           threads=2  1.31s
+  fine-mutex             threads=2  4.10s
+  optimistic-mutex       threads=2  2.05s
+  lazy-mutex             threads=2  1.25s
+  coarse-backoff         threads=2  1.19s
+  fine-backoff           threads=2  2.73s
+  optimistic-backoff     threads=2  1.72s
+  lazy-backoff           threads=2  1.00s
+== 4 threads
+  coarse-mutex           threads=4  3.29s
+  fine-mutex             threads=4  19.69s
+  optimistic-mutex       threads=4  6.99s
+  lazy-mutex             threads=4  3.92s
+  coarse-backoff         threads=4  4.70s
+  fine-backoff           threads=4  10.44s
+  optimistic-backoff     threads=4  6.87s
+  lazy-backoff           threads=4  3.82s
+
+ALL CONCURRENT LIST TESTS PASSED (0 failures)

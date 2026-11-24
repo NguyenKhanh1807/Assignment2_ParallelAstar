@@ -1,0 +1,64 @@
+% Subsection: review of the lecture material (\input from sections/sequential.tex)
+\subsection{Checking the lecture's pseudocode and reference notebook}
+\label{sec:review}
+
+The lecture slides ask to ``check the correctness of the left algorithm'' (the
+A* pseudocode on slides 9--10), and the reference notebook
+\texttt{osm-astar.ipynb} is marked ``not yet verified''. We checked both.
+
+\paragraph{Pseudocode (slides 9--10).}
+\begin{itemize}[nosep]
+  \item The selected vertex $u$ is added to $C$ but \textbf{never removed from
+        $O$}. The next iteration selects the same $u$ again, so the loop never
+        progresses. The fix is $O := O \setminus \{u\}$ after the selection.
+  \item Neighbours already in $C$ are skipped. This is correct only for a
+        \emph{consistent} $h$. With a dynamic or uncertain $h$ (the question on
+        slide~10) a closed vertex can later be reached with a smaller
+        $g$, and it must be re-opened (Section~\ref{sec:seq-dyn}).
+  \item When $O$ becomes empty without reaching $d$, the procedure ends
+        without reporting that no path exists.
+\end{itemize}
+
+\paragraph{Reference notebook.} We ran the notebook's
+\texttt{astar\_shortest\_path} unchanged on our graph, loaded as an OSMnx-style
+\texttt{MultiDiGraph}, and compared it with \texttt{networkx} shortest paths.
+Table~\ref{tab:review} lists what we found. The most serious problem is B9: in
+an OSMnx \texttt{MultiDiGraph}, \texttt{graph[u]} maps each neighbour to a
+dictionary of \emph{parallel edges} (\texttt{\{0: \{'length': ...\}\}}), so
+\texttt{edge\_data.get('length', 1)} always returns the default 1. Every road
+segment then costs 1\,m, and the code minimises the number of segments. This
+explains the weight printed in the notebook: 0.34\,min for a trip across the
+city. On our graph the same example is a 19.1\,km route that takes 41\,min with
+the lecturer's speed profile.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Problems found in \texttt{astar\_shortest\_path} of the reference
+notebook, measured with the code unchanged on 60 random queries on our city
+graph.}
+\label{tab:review}
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}p{4.6cm} Y}
+\toprule
+ & \textbf{Problem} & \textbf{Effect and fix} \\
+\midrule
+B1 & \texttt{f\_score\_neighbor = g\_score + h\_score} uses the \emph{current} node's $g$ and $h$ & the queue is not ordered by the neighbour's $f$, so the search is not A*. Fix: $g_{\mathrm{nb}} + h_{\mathrm{nb}}$ \\
+B2 & \texttt{t = t + ...} inside the neighbour loop & the current node's clock grows with every neighbour scanned. Fix: a separate $t_{\mathrm{nb}}$ \\
+B3 & \texttt{speeds[floor(t)]}, $t$ in minutes, 20 slots & \texttt{IndexError} for trips longer than 20\,min; hidden only by B9 (with B9 fixed, the code crashes). Fix: cyclic profile \\
+B4 & Euclidean distance on longitude/latitude \emph{degrees} & $h \approx 10^{-4}$\,min: the search expands as many nodes as Dijkstra (198\,718 against 198\,722 on a long query). Fix: great-circle distance in metres \\
+B5 & $h = d / \textit{speed}(t)$ & over-estimates when later slots are faster, so $h$ is not admissible (Section~\ref{sec:seq-td}). Fix: $d / v_{\max}$ \\
+B6 & \texttt{shortest\_path\_at\_time} runs a full Dijkstra in every call of $h$ & 0.6\,s per generated node on the city graph; not admissible either (B5). Fix: one reverse Dijkstra per destination \\
+B7 & edge time uses only the speed at departure & not FIFO: 6.3\% of random (departure, length) pairs arrive earlier when leaving later, so label-setting A* is not exact. Fix: integrate the speed over the slots \\
+B8 & the whole path is copied into every queue entry; no best-$g$ check & $O(\text{path length})$ memory per entry and many useless duplicates. Fix: parent array \\
+B9 & \texttt{edge\_data.get('length', 1)} on a \texttt{MultiDiGraph} & always 1: routes are 26\% longer than the shortest route on average (up to $2.2\times$), and the reported weight is 0.48\,min instead of 37.8\,min. Fix: minimum over parallel edges \\
+B10 & returns \texttt{f\_score} as the path weight & wrong whenever B1 applies. Fix: return the arrival time minus the departure time \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The corrected notebook (\texttt{notebooks/osm-astar-fixed.ipynb}) keeps the
+original function next to the fixed one. On 60 random queries with four
+departure times, the fixed time-dependent A* returns exactly the travel time
+of an independent oracle and of the uninformed search
+(Section~\ref{sec:seq-td}). Our C++ implementation follows the same
+corrections.
