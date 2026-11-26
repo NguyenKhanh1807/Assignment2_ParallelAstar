@@ -97,6 +97,7 @@ struct ListBase {
     using N = Node<Lock>;
     N* head; N* tail;
     std::atomic<N*> retired{nullptr};
+    std::atomic<long> retired_cnt{0};
     ListBase() { head = new N(KMIN); tail = new N(KMAX); head->next.store(tail); }
     ~ListBase() {
         N* c = head;
@@ -106,9 +107,12 @@ struct ListBase {
     }
     ListBase(const ListBase&) = delete;
     void retire(N* x) {
+        retired_cnt.fetch_add(1, std::memory_order_relaxed);
         N* old = retired.load(std::memory_order_relaxed);
         do { x->retired_next = old; } while (!retired.compare_exchange_weak(old, x, std::memory_order_release, std::memory_order_relaxed));
     }
+    long retired_count() const { return retired_cnt.load(std::memory_order_relaxed); }
+    static constexpr size_t node_bytes() { return sizeof(N); }
     bool isEmpty() const { return head->next.load() == tail; }
     // ---- quiescent-state helpers for tests (call only when no thread is operating)
     long size() const { long c = 0; for (N* x = head->next.load(); x != tail; x = x->next.load()) c++; return c; }

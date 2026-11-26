@@ -46,6 +46,13 @@ int main(int argc, char** argv) {
             check("hda-window/euclid", g, s, t, opt, [&] { return hda_star(g, s, t, he, T, LENGTH, 0.03); });
             check("hda-window/alt", g, s, t, opt, [&] { return hda_star(g, s, t, ha, T, LENGTH, 0.0); });
         }
+        if (i < 4) {  // verify reusable ThreadPool + CPU affinity pinning on small subset
+            int PT = std::min(4, maxT);
+            ThreadPool pool(PT, true);
+            check("pool-lazy-backoff/euclid", g, s, t, opt, [&] { return par_astar_shared<ListPQ<LazyList<BackoffLock>>>(g, s, t, he, PT, LENGTH, &pool, true); });
+            check("pool-heap-backoff/alt", g, s, t, opt, [&] { return par_astar_shared<HeapPQ<BackoffLock>>(g, s, t, ha, PT, LENGTH, &pool, true); });
+            check("pool-hda/euclid", g, s, t, opt, [&] { return hda_star(g, s, t, he, PT, LENGTH, 0.03, &pool, true); });
+        }
         if ((i + 1) % 10 == 0) { std::printf("  %d pairs done, %d runs, %d failures\n", i + 1, runs, fails); std::fflush(stdout); }
     }
     std::printf("\n%s (%d runs, %d failures)\n", fails ? "PARALLEL A* TESTS FAILED" : "ALL PARALLEL A* TESTS PASSED", runs, fails);

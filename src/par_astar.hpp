@@ -22,13 +22,61 @@
 //                                      hash(node) % T, generated nodes sent via mailboxes.
 #pragma once
 #include <atomic>
+#include <condition_variable>
+#include <functional>
+#include <map>
 #include <mutex>
 #include <queue>
+#include <stdexcept>
 #include <thread>
+#ifdef __linux__
+#include <fstream>
+#include <pthread.h>
+#include <sched.h>
+#include <unistd.h>
+#endif
+#include <sys/resource.h>
 #include "clist.hpp"
 #include "seq_astar.hpp"
 
 namespace hcm {
+
+// ------------------------------------------------------------------ benchmark stats & RSS
+struct Stats { double median, mean, std, min, max, iqr; };
+inline double percentile_sorted(const std::vector<double>& s, double p) {
+    if (s.empty()) return 0.0;
+    double idx = p * (double)(s.size() - 1);
+    size_t lo = (size_t)idx, hi = std::min(s.size() - 1, lo + 1);
+    double frac = idx - (double)lo;
+    return s[lo] * (1.0 - frac) + s[hi] * frac;
+}
+inline Stats compute_stats(std::vector<double> v) {
+    if (v.empty()) return {};
+    std::sort(v.begin(), v.end());
+    double sum = 0; for (double x : v) sum += x;
+    double mean = sum / (double)v.size(), var = 0;
+    for (double x : v) var += (x - mean) * (x - mean);
+    double sd = v.size() > 1 ? std::sqrt(var / (double)(v.size() - 1)) : 0.0;
+    return {percentile_sorted(v, 0.5), mean, sd, v.front(), v.back(),
+            percentile_sorted(v, 0.75) - percentile_sorted(v, 0.25)};
+}
+inline long max_rss_kb() {
+    struct rusage ru{};
+    if (getrusage(RUSAGE_SELF, &ru) != 0) return 0;
+#ifdef __APPLE__
+    return (long)(ru.ru_maxrss / 1024);
+#else
+    return (long)ru.ru_maxrss;
+#endif
+}
+inline long current_rss_kb() {
+#ifdef __linux__
+    long sz = 0, res = 0;
+    std::ifstream f("/proc/self/statm");
+    if (f >> sz >> res) return res * (sysconf(_SC_PAGESIZE) / 1024);
+#endif
+    return max_rss_kb();
+}
 
 constexpr int PBITS = 24;                       // parent / node id bits
 constexpr uint64_t PMASK = (1ull << PBITS) - 1;
@@ -40,7 +88,127 @@ inline clist::Key mkkey(Cost f, int v) { return (clist::Key)(((uint64_t)f << PBI
 inline Cost key_f(clist::Key k) { return (Cost)((uint64_t)k >> PBITS); }
 inline int key_v(clist::Key k) { return (int)((uint64_t)k & PMASK); }
 
-struct ParResult : Result { int threads = 1; long pushes = 0; };
+struct ParResult : Result { int threads = 1; long pushes = 0; long retired_bytes = 0; };
+
+// ------------------------------------------------------------------ CPU affinity & thread pool
+#ifdef __linux__
+// Orders allowed CPUs so distinct physical cores come before SMT siblings.
+inline const std::vector<int>& physical_first_cpus() {
+    static const std::vector<int> order = [] {
+        cpu_set_t mask; CPU_ZERO(&mask);
+        std::vector<int> avail;
+        if (pthread_getaffinity_np(pthread_self(), sizeof(mask), &mask) == 0) {
+            for (int c = 0; c < CPU_SETSIZE; ++c) if (CPU_ISSET(c, &mask)) avail.push_back(c);
+        }
+        if (avail.empty()) {
+            int n = (int)std::thread::hardware_concurrency();
+            for (int c = 0; c < std::max(1, n); ++c) avail.push_back(c);
+        }
+        std::vector<int> primary, smt;
+        std::map<std::pair<int, int>, bool> seen;
+        for (int c : avail) {
+            int pkg = 0, core = c;
+            std::ifstream fp("/sys/devices/system/cpu/cpu" + std::to_string(c) + "/topology/physical_package_id");
+            std::ifstream fc("/sys/devices/system/cpu/cpu" + std::to_string(c) + "/topology/core_id");
+            fp >> pkg; fc >> core;
+            if (!seen[{pkg, core}]) { seen[{pkg, core}] = true; primary.push_back(c); }
+            else smt.push_back(c);
+        }
+        primary.insert(primary.end(), smt.begin(), smt.end());
+        return primary;
+    }();
+    return order;
+}
+struct AffinityGuard {
+    bool active = false;
+    cpu_set_t prev{};
+    AffinityGuard(bool enable, int worker_id, bool restore = true) {
+        if (!enable) return;
+        const auto& cpus = physical_first_cpus();
+        if (cpus.empty()) return;
+        if (restore) active = (pthread_getaffinity_np(pthread_self(), sizeof(prev), &prev) == 0);
+        cpu_set_t s; CPU_ZERO(&s);
+        CPU_SET(cpus[worker_id % (int)cpus.size()], &s);
+        pthread_setaffinity_np(pthread_self(), sizeof(s), &s);
+    }
+    ~AffinityGuard() { if (active) pthread_setaffinity_np(pthread_self(), sizeof(prev), &prev); }
+};
+#else
+struct AffinityGuard { AffinityGuard(bool, int, bool = true) {} };
+#endif
+
+// Reusable worker pool: thread 0 executes on the caller; workers 1..T-1 wait on a CV.
+struct ThreadPool {
+    int T;
+    bool pin;
+    std::mutex mu;
+    std::condition_variable cv_start, cv_done;
+    std::function<void(int)> job;
+    uint64_t gen = 0;
+    int pending_workers = 0;
+    bool stop = false;
+    std::vector<std::thread> workers;
+
+    explicit ThreadPool(int threads, bool pin_cores = false) : T(std::max(1, threads)), pin(pin_cores) {
+        for (int i = 1; i < T; ++i) {
+            workers.emplace_back([this, i] {
+                AffinityGuard ag(pin, i, false);
+                uint64_t seen = 0;
+                for (;;) {
+                    std::function<void(int)> fn;
+                    {
+                        std::unique_lock<std::mutex> lk(mu);
+                        cv_start.wait(lk, [&] { return stop || gen != seen; });
+                        if (stop) return;
+                        seen = gen;
+                        fn = job;
+                    }
+                    fn(i);
+                    std::lock_guard<std::mutex> lk(mu);
+                    if (--pending_workers == 0) cv_done.notify_one();
+                }
+            });
+        }
+    }
+    ~ThreadPool() {
+        { std::lock_guard<std::mutex> lk(mu); stop = true; gen++; }
+        cv_start.notify_all();
+        for (auto& w : workers) w.join();
+    }
+    ThreadPool(const ThreadPool&) = delete;
+    int size() const { return T; }
+    template <class F>
+    void run(F&& fn) {
+        AffinityGuard ag(pin, 0, true);
+        if (T <= 1) { fn(0); return; }
+        {
+            std::lock_guard<std::mutex> lk(mu);
+            job = [&](int id) { fn(id); };
+            pending_workers = T - 1;
+            gen++;
+        }
+        cv_start.notify_all();
+        fn(0);
+        std::unique_lock<std::mutex> lk(mu);
+        cv_done.wait(lk, [&] { return pending_workers == 0; });
+    }
+};
+
+template <class F>
+inline void run_parallel(int T, ThreadPool* pool, bool pin, F&& fn) {
+    T = std::max(1, T);
+    if (pool) {
+        if (pool->size() != T) throw std::invalid_argument("ThreadPool size does not match thread count T");
+        pool->run(std::forward<F>(fn));
+        return;
+    }
+    AffinityGuard ag(pin, 0, true);
+    std::vector<std::thread> th;
+    th.reserve(std::max(0, T - 1));
+    for (int i = 1; i < T; ++i) th.emplace_back([&, i] { AffinityGuard wg(pin, i, false); fn(i); });
+    fn(0);
+    for (auto& x : th) x.join();
+}
 
 // ------------------------------------------------------------------ priority-queue adaptors
 template <class List>
@@ -50,6 +218,7 @@ struct ListPQ {
     bool push(clist::Key k) { return l.add(k); }   // false: duplicate key, nothing added
     bool pop(clist::Key& k) { return l.removeMin(k); }
     bool empty() { return l.isEmpty(); }
+    long retired_bytes() const { return l.retired_count() * (long)List::node_bytes(); }
 };
 template <class Lock>
 struct HeapPQ {
@@ -59,6 +228,7 @@ struct HeapPQ {
     bool push(clist::Key k) { std::lock_guard<Lock> g(L); q.push(k); return true; }
     bool pop(clist::Key& k) { std::lock_guard<Lock> g(L); if (q.empty()) return false; k = q.top(); q.pop(); return true; }
     bool empty() { std::lock_guard<Lock> g(L); return q.empty(); }
+    long retired_bytes() const { return 0; }
 };
 
 inline bool cas_min_g(std::atomic<uint64_t>& a, uint64_t ng, int parent) {
@@ -74,7 +244,8 @@ inline void atomic_min(std::atomic<Cost>& a, Cost v) {
 
 // ------------------------------------------------------------------ shared open list A*
 template <class PQ, class H>
-ParResult par_astar_shared(const Graph& g, int s, int t, const H& h0, int T, int metric = LENGTH) {
+ParResult par_astar_shared(const Graph& g, int s, int t, const H& h0, int T, int metric = LENGTH,
+                           ThreadPool* pool = nullptr, bool pin = false) {
     double t0 = now_ms();
     auto hcache = make_hcache(g.n);
     MemoH<H> h{&h0, &hcache};
@@ -88,7 +259,7 @@ ParResult par_astar_shared(const Graph& g, int s, int t, const H& h0, int T, int
     std::atomic<long> expanded{0}, pushes{0};
     G[s].store(pack(0, PMASK)); open.push(mkkey(h(s), s));   // the one initial work item (pending == 1)
     if (s == t) U = 0;
-    auto worker = [&]() {
+    auto worker = [&](int) {
         clist::Backoff bo(1, 1024);
         long my_exp = 0, my_push = 0;
         while (!done.load(std::memory_order_acquire)) {
@@ -126,11 +297,8 @@ ParResult par_astar_shared(const Graph& g, int s, int t, const H& h0, int T, int
         }
         expanded += my_exp; pushes += my_push;
     };
-    std::vector<std::thread> th;
-    for (int i = 1; i < T; ++i) th.emplace_back(worker);
-    worker();
-    for (auto& x : th) x.join();
-    R.expanded = expanded; R.pushes = pushes;
+    run_parallel(T, pool, pin, worker);
+    R.expanded = expanded; R.pushes = pushes; R.retired_bytes = open.retired_bytes();
     Cost gt = (Cost)unpack_g(G[t].load());
     if (gt < (Cost)GINF) {
         R.cost = gt;
@@ -148,7 +316,8 @@ ParResult par_astar_shared(const Graph& g, int s, int t, const H& h0, int T, int
 // roughly synchronised on the global f-order and avoids exploring far beyond the optimal
 // f-layer when one owner thread is slow (e.g. descheduled when threads > cores).
 template <class H>
-ParResult hda_star(const Graph& g, int s, int t, const H& h0, int T, int metric = LENGTH, double window = -1.0) {
+ParResult hda_star(const Graph& g, int s, int t, const H& h0, int T, int metric = LENGTH, double window = -1.0,
+                   ThreadPool* pool = nullptr, bool pin = false) {
     double t0 = now_ms();
     auto hcache = make_hcache(g.n);
     MemoH<H> h{&h0, &hcache};
@@ -225,10 +394,7 @@ ParResult hda_star(const Graph& g, int s, int t, const H& h0, int T, int metric 
         }
         expanded += my_exp; pushes += my_push;
     };
-    std::vector<std::thread> th;
-    for (int i = 1; i < T; ++i) th.emplace_back(worker, i);
-    worker(0);
-    for (auto& x : th) x.join();
+    run_parallel(T, pool, pin, worker);
     R.expanded = expanded; R.pushes = pushes;
     if (G[t] < INF) { R.cost = G[t]; R.path = build_path(par, s, t); }
     R.ms = now_ms() - t0;
