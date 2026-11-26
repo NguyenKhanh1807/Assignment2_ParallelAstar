@@ -16,3 +16,4 @@ report/latex/*.synctex.gz
 # Python
 __pycache__/
 .ipynb_checkpoints/
+.venv_report/

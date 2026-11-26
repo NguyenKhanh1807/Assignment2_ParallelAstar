@@ -7,7 +7,17 @@ set -e
 cd "$(dirname "$0")"
 P=${1:-$(uname -s)-$(uname -m)-$(getconf _NPROCESSORS_ONLN)c}
 N=$(getconf _NPROCESSORS_ONLN)
-T="1"; t=2; while [ $t -le $((2*N)) ] && [ $t -le 16 ]; do T="$T,$t"; t=$((t*2)); done
+T="1"; t=2; h_added=0; f_added=0
+while [ $t -le $((2*N)) ] && [ $t -le 32 ]; do
+  if [ "$N" -gt 8 ]; then
+    if [ $h_added -eq 0 ] && [ $((N/2)) -lt $t ] && [ $((N/2)) -gt 4 ]; then T="$T,$((N/2))"; h_added=1; fi
+    if [ $f_added -eq 0 ] && [ "$N" -lt $t ] && [ "$N" -gt 4 ]; then T="$T,$N"; f_added=1; fi
+  fi
+  T="$T,$t"
+  [ $((N/2)) -eq $t ] && h_added=1; [ "$N" -eq $t ] && f_added=1
+  t=$((t*2))
+done
+if [ "$N" -gt 8 ] && [ $f_added -eq 0 ] && [ "$N" -le 32 ]; then T="$T,$N"; fi
 DATA=${DATA:-data}; OUT=${OUT:-results}; MINDIST=${MINDIST:-3000}
 echo "platform=$P cores=$N threads=$T data=$DATA out=$OUT"
 mkdir -p "$OUT"
