@@ -12,7 +12,7 @@ found ten problems in the notebook (the most serious makes every road segment
 cost 1\,m) and provide a corrected, tested version. Every exact algorithm was
 checked against an independent oracle for exact cost equality on thousands of
 random queries, and the concurrent code also under ThreadSanitizer; all tests
-pass on all three platforms. The study supports five conclusions:
+pass on all four platforms. The study supports five conclusions:
 
 \begin{enumerate}[nosep]
   \item \textbf{A better heuristic beats more threads.} ALT landmarks make a
@@ -29,12 +29,12 @@ pass on all three platforms. The study supports five conclusions:
         whenever threads outnumber cores.
   \item \textbf{A sorted list is a poor open list.} \texttt{removeMin} always
         contends at the head and insertion is linear. A list-based parallel A*
-        is correct after four adaptations, but only the lazy list on 4 cores
-        with an expensive heuristic beat sequential A* ($1.11\times$).
+        is correct after four adaptations, but only the lazy list with an
+        expensive heuristic beat sequential A* ($1.11\times$ on 4 performance cores on A; $1.55\times$ on 10 uniform Xeon cores on D).
   \item \textbf{Parallel A* needs coarse work per node.} On a road graph a node
         expansion takes less than a microsecond, and with a cheap heuristic
         every parallel version loses to sequential A*. With an expensive
-        heuristic, \HDA{} and the shared heap reach $1.35$--$1.67\times$. For
+        heuristic, \HDA{} and the shared heap reach $1.35$--$1.83\times$ ($1.91\times$ with a persistent pool and core pinning on D). For
         many short queries, running different queries in parallel is the
         better use of the cores.
 \end{enumerate}

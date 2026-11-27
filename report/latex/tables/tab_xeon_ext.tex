@@ -1,0 +1,15 @@
+\begin{tabular}{lrrrrr}
+\toprule
+Configuration ($T$, costly $h$) & median (ms) & std (ms) & $p_{95}$ (ms) & speed-up & retired (KB) \\
+\midrule
+sequential A* (1) & 375.7 & 20.1 & 52.8 & $1.00\times$ & 0 \\
+\HDA{} (10, pool+pin) & 233.0 & 2.3 & 31.5 & $1.61\times$ & 0 \\
+\HDA{}+$w$ (20, pool+pin) & 197.0 & 22.1 & 25.6 & $1.91\times$ & 0 \\
+lazy list, backoff (10, pool+pin) & 250.0 & 1.5 & 32.3 & $1.50\times$ & 842 \\
+lazy list, TTAS (10, pool+pin) & 336.1 & 5.2 & 39.8 & $1.12\times$ & 842 \\
+shared heap, backoff (10, pool+pin) & 259.2 & 3.6 & 37.3 & $1.45\times$ & 0 \\
+shared heap, TTAS (10, pool+pin) & 483.5 & 1.7 & 66.8 & $0.78\times$ & 0 \\
+\HDA{} $w=0.01$ (32, pool+pin) & 329.1 & 92.0 & 36.3 & $1.14\times$ & 0 \\
+\HDA{} $w=0.03$ (32, pool+pin) & 1320.9 & 887.9 & 244.6 & $0.28\times$ & 0 \\
+\bottomrule
+\end{tabular}

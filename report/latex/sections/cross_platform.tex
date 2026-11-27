@@ -2,30 +2,30 @@
 \section{Cross-Platform Comparison}
 \label{sec:cross}
 
-The three platforms differ in core count (10, 4 and 2), in core types (A mixes
-performance and efficiency cores), in instruction set and memory model (ARMv8
-on A and B, x86-64 on C), and in operating system and C++ library (macOS with
-libc++ on A, Linux with libstdc++ on B and C). Platforms A and B run on the
-same Apple M5 chip, natively and inside a virtual machine.
+The four platforms differ in core count (10, 4, 2, and 10c/20t), in core types (A mixes
+performance and efficiency cores; D has 10 uniform Xeon cores), in instruction set and memory model (ARMv8
+on A and B, x86-64 on C and D), and in operating system and C++ library (macOS with
+libc++ on A, Linux with libstdc++ on B, C, and D). Platforms A and B run on the
+same Apple M5 chip, natively and inside a virtual machine; Platform~D is bare-metal x86-64 hardware.
 Table~\ref{tab:cross} summarizes the best result of each part on each platform,
 and Figure~\ref{fig:cross} compares how the key results scale.
 
 \begin{table}[H]
 \centering
-\small
+\scriptsize
 \caption{Best result per platform. ``$\times$'' values are speed-ups over
 sequential A* on the same platform; thread counts in parentheses.}
 \label{tab:cross}
-\begin{tabularx}{\linewidth}{l YYY}
+\begin{tabularx}{\linewidth}{l YYYY}
 \toprule
- & \textbf{A: macOS, M5, 10 cores} & \textbf{B: Linux VM, 4 vCPU} & \textbf{C: Linux, Xeon, 2 vCPU} \\
+ & \textbf{A: macOS, M5, 10c} & \textbf{B: Linux VM, 4 vCPU} & \textbf{C: Xeon VM, 2 vCPU} & \textbf{D: Xeon W-2255, 10c/20t} \\
 \midrule
-Sequential A*, Euclidean $h$ (city graph) & 2.2\,ms / query & 2.7\,ms / query & 6.4\,ms / query \\
-Best list, 90\% \texttt{contains} & lazy, \texttt{std::mutex}: 15.9\,Mops/s (16) & lazy, TTAS: 8.4\,Mops/s (8) & lazy, TTAS: 3.6\,Mops/s (2) \\
-Best list, \texttt{add}/\texttt{removeMin}, $\ge 2$ threads & coarse, backoff: 39.1\,Mops/s (2) & coarse, backoff: 33.5\,Mops/s (2) & coarse, backoff: 19.7\,Mops/s (2) \\
-Best parallel A*, Euclidean $h$ & $0.42\times$ (shared heap, 2) & $0.53\times$ (shared heap, 2) & $0.58\times$ (shared heap, \texttt{std::mutex}, 4) \\
-Best parallel A*, costly $h$ & $1.35\times$ (\HDA, 4) & $1.44\times$ (\HDA, 4) & $1.67\times$ (shared heap, 4) \\
-Best list-based parallel A*, costly $h$ & $1.11\times$ (lazy, 4) & $0.89\times$ (lazy, 8) & $0.74\times$ (lazy, 4) \\
+Sequential A*, Euclidean $h$ (city graph) & 2.2\,ms / query & 2.7\,ms / query & 6.4\,ms / query & 5.3\,ms / query \\
+Best list, 90\% \texttt{contains} & lazy, \texttt{std::mutex}: 15.9\,Mops/s (16) & lazy, TTAS: 8.4\,Mops/s (8) & lazy, TTAS: 3.6\,Mops/s (2) & lazy, \texttt{std::mutex}: 13.7\,Mops/s (32) \\
+Best list, \texttt{add}/\texttt{removeMin}, $\ge 2$ threads & coarse, backoff: 39.1\,Mops/s (2) & coarse, backoff: 33.5\,Mops/s (2) & coarse, backoff: 19.7\,Mops/s (2) & coarse, backoff: 24.8\,Mops/s (2) \\
+Best parallel A*, Euclidean $h$ ($\ge 2$ threads) & $0.42\times$ (shared heap, 2) & $0.53\times$ (shared heap, 2) & $0.58\times$ (shared heap, \texttt{std::mutex}, 4) & $0.68\times$ (shared heap, 2) \\
+Best parallel A*, costly $h$ & $1.35\times$ (\HDA, 4) & $1.44\times$ (\HDA, 4) & $1.67\times$ (shared heap, 4) & $1.83\times$ (\HDA, 10) \\
+Best list-based parallel A*, costly $h$ & $1.11\times$ (lazy, 4) & $0.89\times$ (lazy, 8) & $0.74\times$ (lazy, 4) & $1.55\times$ (lazy, 10) \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -87,6 +87,33 @@ the hypervisor gives the VM more physical capacity than 2 vCPUs suggest; we did
 not verify this.
 
 \textbf{Memory model.} The same code passed every correctness test on the weak
-ARMv8 memory model (A, B) and on x86-64 TSO (C), and ThreadSanitizer found no
+ARMv8 memory model (A, B) and on x86-64 TSO (C, D), and ThreadSanitizer found no
 data race. Because every shared access uses \texttt{std::atomic} with explicit
 acquire/release ordering, no platform-specific code was needed.
+
+\subsection{Extended Platform~D evaluation: pool, pinning, range, and window tuning}
+\label{sec:xeon-ext}
+
+To close the measurement gaps identified in Section~\ref{sec:threats}, we ran an extended suite on Platform~D (\texttt{run\_ext.sh}) with 5--7 repetitions, a persistent \texttt{ThreadPool}, physical-core-first \texttt{pthread\_setaffinity\_np} pinning, key ranges up to 50\,000, \texttt{TTASLock} in Part~3, the \texttt{TIME} metric, and a sweep of the \HDA{} $f$-window (Figure~\ref{fig:xeon-ext}, Table~\ref{tab:xeon-ext}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/fig10_xeon_ext.pdf}
+\caption{Extended Platform~D experiments: priority-queue throughput across key ranges at $T=10$ (left), persistent \texttt{ThreadPool} + physical-core pinning vs.\ per-query spawning on costly $h$ (middle), and \HDA{} $f$-window sweep (right).}
+\label{fig:xeon-ext}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Extended Platform~D results (7 repetitions, 20 queries, costly $h$, \texttt{LENGTH} metric).}
+\label{tab:xeon-ext}
+\input{tables/tab_xeon_ext}
+\end{table}
+
+\begin{itemize}[nosep]
+  \item \textbf{Key-range scaling ($10^3 \rightarrow 5\times 10^4$).} At 50\,000 keys (matching city-graph OPEN sizes), \texttt{HeapPQ} with backoff retains $22.9 \rightarrow 16.2$\,Mops/s ($1 \rightarrow 10$ threads), whereas sorted lists drop to $0.01$--$0.03$\,Mops/s at 1 thread due to $O(n)$ traversal.
+  \item \textbf{Thread pool, pinning, and variance.} Reusing workers and pinning threads $0\dots 9$ to distinct physical cores stabilizes runtime (\HDA{} at $T=10$: $233.0 \pm 2.3$\,ms, $p_{95}=31.5$\,ms) and lets \HDA{}+$w$ reach $1.91\times$ ($197.0$\,ms) at $T=20$ SMT threads, while plain \HDA{} at $T=20$ suffers high tail variance ($\mathrm{std}=1146$\,ms). On cheap Euclidean $h$, pooling and pinning still yield $<1\times$ speed-up, confirming that contention rather than thread creation is the bottleneck.
+  \item \textbf{\texttt{TTASLock} vs.\ backoff, \texttt{TIME} metric, and memory.} Even without oversubscription ($T=10$ pinned), \texttt{BackoffLock} beats \texttt{TTASLock} ($250.0$ vs.\ $336.1$\,ms on lazy list; $259.2$ vs.\ $483.5$\,ms on shared heap). Under the looser \texttt{TIME} metric (costly $h$, $\approx 66$\,k expansions), \HDA{} reaches $1.75\times$ at $T=20$ ($694.5$ vs.\ $1213.1$\,ms). Lazy-list searches leave $842$\,KB (\texttt{LENGTH}) to $2.7$\,MB (\texttt{TIME}) of un-reclaimed retired nodes per query.
+  \item \textbf{$f$-window tuning.} Strict lockstep ($w=0.00$) is $4\times$ slower ($1088$\,ms at $T=10$) from constant yielding; $w=0.01$ avoids the $T=32$ oversubscription collapse ($329.1$\,ms vs.\ $1320.9$\,ms for $w=0.03$).
+\end{itemize}

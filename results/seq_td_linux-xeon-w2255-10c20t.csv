@@ -1,0 +1,5 @@
+platform,heuristic,avg_ms,avg_expanded,avg_reopened,avg_ratio,max_ratio,frac_suboptimal
+linux-xeon-w2255-10c20t,exact length / vmax,0.6511,3507.9,0.0,1.000000,1.000000,0.0000
+linux-xeon-w2255-10c20t,great-circle / vmax,2.0321,7548.2,0.0,1.000000,1.000000,0.0000
+linux-xeon-w2255-10c20t,lecturer: great-circle / speed(t),1.9512,6893.5,2096.3,1.017862,1.317387,0.5000
+linux-xeon-w2255-10c20t,zero (TD-Dijkstra),2.9098,18153.3,0.0,1.000000,1.000000,0.0000

@@ -7,13 +7,14 @@ matplotlib.use('Agg'); import matplotlib.pyplot as plt
 res, res2, data, out = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]; os.makedirs(out, exist_ok=True)
 PLAT = [('macos-native-apple-m5-10c', 'A: macOS, Apple M5 (4P+6E)', 10),
         ('apple-silicon-arm64-4vcpu', 'B: Linux VM on M5 (4 vCPU)', 4),
-        ('cloud-x86-2vcpu', 'C: Linux, Xeon cloud VM (2 vCPU)', 2)]
+        ('cloud-x86-2vcpu', 'C: Linux, Xeon cloud VM (2 vCPU)', 2),
+        ('linux-xeon-w2255-10c20t', 'D: Linux, Xeon W-2255 (10c/20t)', 20)]
 plt.rcParams.update({'font.size': 8.5, 'axes.spines.top': False, 'axes.spines.right': False, 'axes.grid': True,
     'grid.color': '#e4e3df', 'grid.linewidth': 0.6, 'axes.edgecolor': '#8a8984', 'xtick.color': '#52514e',
     'ytick.color': '#52514e', 'legend.frameon': False, 'lines.linewidth': 1.6, 'lines.markersize': 4.5})
 C = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#7b5ea7']
 MK = ['o', 's', '^', 'D', 'v', 'P', 'X']
-XT = (1, 2, 4, 8, 16)
+XT = (1, 2, 4, 8, 16, 32)
 def rd(kind, p):
     d = pd.read_csv(f'{res2 if kind == "clist" else res}/{kind}_{p}.csv')
     return d.drop_duplicates(subset=[c for c in ('version', 'heuristic', 'threads', 'list', 'mix', 'metric', 'algorithm', 'eps') if c in d.columns], keep='first') if kind in ('astar', 'clist') else d
@@ -92,7 +93,7 @@ fig.tight_layout(); fig.savefig(f'{out}/fig4_dynamic.pdf'); plt.close(fig)
 MIX = [('read', '90% contains'), ('update', '50% contains / 50% add+remove'), ('pq', '50% add / 50% removeMin')]
 FAM = {'coarse': 0, 'fine': 1, 'optimistic': 2, 'lazy': 3}
 LS = {'mutex': '-', 'backoff': '--', 'ttas': ':'}
-fig, axs = plt.subplots(3, 3, figsize=(9, 7.6), sharex=True)
+fig, axs = plt.subplots(len(PLAT), 3, figsize=(9, 9.6), sharex=True)
 for r, (p, name, hw) in enumerate(PLAT):
     c = rd('clist', p)
     for k, (mix, title) in enumerate(MIX):
@@ -105,14 +106,14 @@ for r, (p, name, hw) in enumerate(PLAT):
         xaxis(ax, hw); ax.set_ylim(bottom=0)
         if r == 0: ax.set_title(title, fontsize=9)
         if k == 0: ax.set_ylabel(f'{name}\nthroughput (Mops/s)', fontsize=8)
-        if r == 2: ax.set_xlabel('threads')
-legend_below(fig, axs, ncol=4); fig.tight_layout(rect=(0, 0.08, 1, 1)); fig.savefig(f'{out}/fig5_clist.pdf'); plt.close(fig)
+        if r == len(PLAT) - 1: ax.set_xlabel('threads')
+legend_below(fig, axs, ncol=4); fig.tight_layout(rect=(0, 0.06, 1, 1)); fig.savefig(f'{out}/fig5_clist.pdf'); plt.close(fig)
 
 # ---- fig6: parallel A* speed-up (rows = platforms, cols = heuristics)
 VER = {'list-coarse-backoff': 'list: coarse', 'list-fine-backoff': 'list: fine', 'list-optimistic-backoff': 'list: optimistic',
        'list-lazy-backoff': 'list: lazy', 'heap-backoff': 'shared heap', 'hda': 'HDA*', 'hda-window': 'HDA* + f-window'}
 HS = [('zero', '$h = 0$ (parallel Dijkstra)'), ('euclid', 'Euclidean $h$'), ('euclid-costly', 'costly $h$ (400 flops / eval.)')]
-fig, axs = plt.subplots(3, 3, figsize=(9, 7.6), sharex=True)
+fig, axs = plt.subplots(len(PLAT), 3, figsize=(9, 9.6), sharex=True)
 for r, (p, name, hw) in enumerate(PLAT):
     a = rd('astar', p)
     for k, (H, title) in enumerate(HS):
@@ -124,11 +125,11 @@ for r, (p, name, hw) in enumerate(PLAT):
         ax.axhline(1, color='#52514e', lw=0.8); xaxis(ax, hw); ax.set_ylim(bottom=0)
         if r == 0: ax.set_title(title, fontsize=9)
         if k == 0: ax.set_ylabel(f'{name}\nspeed-up vs. sequential A*', fontsize=8)
-        if r == 2: ax.set_xlabel('threads')
-legend_below(fig, axs); fig.tight_layout(rect=(0, 0.045, 1, 1)); fig.savefig(f'{out}/fig6_astar.pdf'); plt.close(fig)
+        if r == len(PLAT) - 1: ax.set_xlabel('threads')
+legend_below(fig, axs); fig.tight_layout(rect=(0, 0.04, 1, 1)); fig.savefig(f'{out}/fig6_astar.pdf'); plt.close(fig)
 
 # ---- fig7: search overhead
-fig, axs = plt.subplots(1, 3, figsize=(9, 2.9), sharey=True)
+fig, axs = plt.subplots(1, len(PLAT), figsize=(9.6, 2.8), sharey=True)
 for ax, (p, name, hw) in zip(axs, PLAT):
     a = rd('astar', p); a = a[a.heuristic == 'euclid']
     seq = a[a.version == 'seq-binary-heap'].avg_expanded.iloc[0]
@@ -136,7 +137,7 @@ for ax, (p, name, hw) in zip(axs, PLAT):
         g = a[a.version == v].sort_values('threads')
         ax.plot(g.threads, g.avg_expanded / seq, color=C[[3, 4, 5, 6][i]], marker=MK[[3, 4, 5, 6][i]],
                 ls='--' if v.startswith('hda') else '-', label=VER[v])
-    xaxis(ax, hw); ax.set_yscale('log'); ax.set_title(name, fontsize=8.5); ax.set_xlabel('threads')
+    xaxis(ax, hw); ax.set_yscale('log'); ax.set_title(name.split(' (')[0], fontsize=8.5); ax.set_xlabel('threads')
 axs[0].set_ylabel('expansions / sequential (log)')
 legend_below(fig, axs); fig.tight_layout(rect=(0, 0.09, 1, 1)); fig.savefig(f'{out}/fig7_overhead.pdf'); plt.close(fig)
 
@@ -164,4 +165,40 @@ ax.plot(sw.depart_min, sw.lecturer_h_min, color=C[1], marker='s', ms=3, ls='--',
 ax.plot(sw.depart_min, sw.departure_speed_model_min, color='#8a8984', ls=':', label='same route, speed at departure only (not FIFO)')
 ax.set_xlabel('departure time (min)'); ax.set_ylabel('travel time (min)'); ax.legend(fontsize=7.5, ncol=1, loc='upper right')
 fig.tight_layout(); fig.savefig(f'{out}/fig9_td.pdf'); plt.close(fig)
+
+# ---- fig10: Platform D extended gap-fix experiments
+pd_name = PLAT[3][0]
+ce_path, ae_path = f'{res2}/clist_ext_{pd_name}.csv', f'{res}/astar_ext_{pd_name}.csv'
+if os.path.exists(ce_path) and os.path.exists(ae_path):
+    ce, ae = pd.read_csv(ce_path), pd.read_csv(ae_path)
+    fig, axs = plt.subplots(1, 3, figsize=(9.6, 3.0))
+    # Panel 1: PQ throughput vs range (T=10 physical cores)
+    for i, (lst, lab) in enumerate([('heap-backoff', 'shared heap'), ('coarse-backoff', 'coarse list'), ('lazy-backoff', 'lazy list')]):
+        g = ce[(ce.list == lst) & (ce.mix == 'pq') & (ce.threads == 10)].sort_values('range')
+        axs[0].plot(g.range, g.median_mops, color=C[i], marker=MK[i], label=lab)
+    axs[0].set_xscale('log'); axs[0].set_xticks([1000, 10000, 50000]); axs[0].set_xticklabels(['1k', '10k', '50k'])
+    axs[0].minorticks_off(); axs[0].set_xlabel('key range ($T=10$)'); axs[0].set_ylabel('PQ throughput (Mops/s)')
+    axs[0].set_title('PQ scaling with key range', fontsize=8.5); axs[0].legend(fontsize=7.5)
+    # Panel 2: Pool + Pin vs Spawn on euclid-costly
+    ec = ae[(ae.heuristic == 'euclid-costly') & (ae.metric == 'length')]
+    seq_ec = ec[ec.version == 'seq-binary-heap'].median_ms.iloc[0]
+    for i, (ver, pl, pn, lab, ls) in enumerate([
+        ('hda', 0, 0, 'HDA* (spawn)', ':'),
+        ('hda', 1, 1, 'HDA* (pool+pin)', '--'),
+        ('hda-window', 1, 1, 'HDA*+w (pool+pin)', '-'),
+        ('list-lazy-backoff', 1, 1, 'lazy list (pool+pin)', '-.'),
+    ]):
+        g = ec[(ec.version == ver) & (ec.pool == pl) & (ec.pin == pn)].sort_values('threads')
+        axs[1].plot(g.threads, seq_ec / g.median_ms, color=C[i], marker=MK[i], ls=ls, label=lab)
+    axs[1].axhline(1, color='#52514e', lw=0.8); xaxis(axs[1], 20)
+    axs[1].set_xlabel('threads'); axs[1].set_ylabel('speed-up vs. sequential')
+    axs[1].set_title('pool + core pinning (costly $h$)', fontsize=8.5); axs[1].legend(fontsize=7)
+    # Panel 3: HDA* f-window sweep on euclid-costly
+    for i, w in enumerate(['hda-w0.00', 'hda-w0.01', 'hda-w0.03', 'hda-w0.10']):
+        g = ec[ec.version == w].sort_values('threads')
+        axs[2].plot(g.threads, g.median_ms, color=C[i], marker=MK[i], label=w.replace('hda-w', '$w=$'))
+    xaxis(axs[2], 20); axs[2].set_yscale('log')
+    axs[2].set_xlabel('threads'); axs[2].set_ylabel('median time (ms, log)')
+    axs[2].set_title('HDA* $f$-window sweep (costly $h$)', fontsize=8.5); axs[2].legend(fontsize=7.5)
+    fig.tight_layout(); fig.savefig(f'{out}/fig10_xeon_ext.pdf'); plt.close(fig)
 print('figures written to', out)

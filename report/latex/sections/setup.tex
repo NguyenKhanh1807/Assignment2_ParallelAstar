@@ -103,10 +103,10 @@ operations per second; Part~3 reports the wall time to answer all 20 queries
 one after another, so thread creation and joining is included once per query.
 Each Part~2 and Part~3 configuration is repeated 3 times and we report the
 \textbf{median}. Time is measured with \texttt{std::chrono::steady\_clock}.
-Part~2 used threads $\in\{1,2,4,8,16\}$ on Platform~A and $\{1,2,4,8\}$ on
-Platforms~B and~C; Part~3 used up to twice the hardware threads:
-$\{1,\dots,16\}$ on A, $\{1,2,4,8\}$ on B and $\{1,2,4\}$ on C. Shaded regions in the figures mark thread counts that exceed
-the hardware threads available.
+Part~2 used threads $\in\{1,2,4,8,16\}$ on Platform~A, $\{1,2,4,8\}$ on
+Platforms~B and~C, and $\{1,2,4,8,10,16,20,32\}$ on Platform~D; Part~3 used up to twice the hardware threads (capped at 32 on D):
+$\{1,\dots,16\}$ on A, $\{1,2,4,8\}$ on B, $\{1,2,4\}$ on C, and $\{1,2,4,8,10,16,20,32\}$ on D. Shaded regions in the figures mark thread counts that exceed
+the hardware threads available. An extended sweep (\texttt{run\_ext.sh}) on Platform~D additionally measures 5--7 repetition spread, persistent \texttt{ThreadPool} vs.\ per-query spawning, physical-core-first pinning, key ranges up to 50\,000, \texttt{TTASLock} in Part~3, the \texttt{TIME} metric, and \HDA{} $f$-window tuning.
 
 Solution \emph{quality} is measured as cost divided by the exact optimum from
 Dijkstra. All exact algorithms (every parallel version included) reach a ratio
@@ -120,20 +120,20 @@ Table~\ref{tab:platforms} lists them.
 
 \begin{table}[H]
 \centering
-\small
+\scriptsize
 \caption{Shared-memory platforms used in the study.}
 \label{tab:platforms}
-\begin{tabularx}{\linewidth}{l YYY}
+\begin{tabularx}{\linewidth}{l YYYY}
 \toprule
- & \textbf{Platform A} & \textbf{Platform B} & \textbf{Platform C} \\
+ & \textbf{Platform A} & \textbf{Platform B} & \textbf{Platform C} & \textbf{Platform D} \\
 \midrule
-Machine       & MacBook Pro (Apple M5), native & Linux VM on the same MacBook Pro & Cloud virtual machine \\
-CPU           & Apple M5, 4 performance + 6 efficiency cores & Apple M5 (4 virtual CPUs) & Intel Xeon @ 2.10\,GHz \\
-Cores / HW threads & 10 / 10 & 4 / 4 & 2 / 2 \\
-Memory        & 16\,GiB & 4\,GiB & 8\,GiB \\
-OS            & macOS 27.2 & Ubuntu 22.04 (aarch64) & Ubuntu 24.04 (x86-64) \\
-Compiler / C++ library & Apple Clang 21.0, libc++ & GCC 11.4, libstdc++ & GCC 13.3, libstdc++ \\
-Memory model  & ARMv8 (weak) & ARMv8 (weak) & x86-64 TSO \\
+Machine       & MacBook Pro (Apple M5), native & Linux VM on the same MacBook Pro & Cloud virtual machine & Workstation (bare-metal) \\
+CPU           & Apple M5, 4P + 6E cores & Apple M5 (4 vCPUs) & Intel Xeon @ 2.10\,GHz & Intel Xeon W-2255 @ 3.70\,GHz \\
+Cores / HW threads & 10 / 10 & 4 / 4 & 2 / 2 & 10 / 20 (SMT) \\
+Memory        & 16\,GiB & 4\,GiB & 8\,GiB & 61\,GiB \\
+OS            & macOS 27.2 & Ubuntu 22.04 (aarch64) & Ubuntu 24.04 (x86-64) & Ubuntu (x86-64, Linux 7.0) \\
+Compiler / C++ library & Apple Clang 21.0, libc++ & GCC 11.4, libstdc++ & GCC 13.3, libstdc++ & GCC 15.2, libstdc++ \\
+Memory model  & ARMv8 (weak) & ARMv8 (weak) & x86-64 TSO & x86-64 TSO \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -141,14 +141,12 @@ Memory model  & ARMv8 (weak) & ARMv8 (weak) & x86-64 TSO \\
 The platforms differ in instruction set and memory model, operating system and
 scheduler, C++ library, and core count. Two of them are ARM machines, so the
 acquire/release orderings of our lock-free list traversals are exercised on a
-weak memory model and not only on x86. Platform~A is also heterogeneous: only
-4 of its 10 cores are performance cores. With 8 threads, Platform~B is
-oversubscribed $2\times$ and Platform~C $4\times$; Platform~A is oversubscribed
-only at 16 threads.
-
-One caveat applies to Platform~A. Random query pairs are drawn with
+weak memory model and not only on x86. Platform~A is heterogeneous (only
+4 of its 10 cores are performance cores), whereas Platform~D provides 10 uniform
+physical cores (20 hardware threads with SMT) without hypervisor scheduling.
+One caveat applies to Platform~A: random query pairs are drawn with
 \texttt{std::\allowbreak uniform\_int\_\allowbreak distribution}, whose algorithm differs between libc++
 and libstdc++. Platform~A therefore answers a different (statistically
-equivalent) query set from B and C. Speed-ups are always computed against the
+equivalent) query set from B, C, and D (which share identical libstdc++ queries). Speed-ups are always computed against the
 sequential run on the same platform and the same queries, so they remain
 comparable.
