@@ -127,7 +127,7 @@ pre-filled to half. Three workload mixes are measured:
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{figures/fig5_clist.pdf}
-\caption{Part 2: throughput of the 12 list/lock combinations on the three
+\caption{Part 2: throughput of the 12 list/lock combinations on the four
 platforms (rows) for the three workload mixes (columns). Median of 3 runs of
 0.4\,s. Colour: list; line style: lock. The shaded region marks
 oversubscription.}
@@ -147,8 +147,8 @@ priority-queue mix. TTAS rows are omitted (see Figure~\ref{fig:clist}).}
 Figure~\ref{fig:clist} and Table~\ref{tab:clist} summarize the sweep.
 
 \textbf{Only the lazy list scales.} With the read mix, the lazy list goes from
-3.2 to 15.9\,Mops/s on Platform~A ($5\times$ at 16 threads) and from 3.3 to
-8.2\,Mops/s on Platform~B ($2.5\times$ at 4 threads). Its \texttt{contains}
+3.2 to 15.9\,Mops/s on Platform~A ($5\times$ at 16 threads), from 3.3 to
+8.2\,Mops/s on Platform~B ($2.5\times$ at 4 threads), and to 13.7\,Mops/s on Platform~D (32 threads; 9.5\,Mops/s on \emph{update}). Its \texttt{contains}
 takes no lock, and \texttt{add}/\texttt{remove} lock only two neighbouring
 nodes after a lock-free search. The optimistic list scales less (1.6
 $\rightarrow$ 4.6\,Mops/s on A) because its validation traverses the list a

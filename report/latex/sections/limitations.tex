@@ -3,11 +3,12 @@
 \label{sec:threats}
 
 \begin{itemize}
-  \item \textbf{Two platforms share one chip, and one is a VM.} Platforms A and
+  \item \textbf{Platforms A and B share one chip, and B and C are VMs.} Platforms A and
         B both run on the same Apple M5, and Platforms B and C are virtual
         machines whose virtual CPUs are scheduled by a hypervisor we do not
-        control. The study therefore covers fewer independent machines than
-        three bare-metal computers would.
+        control. Bare-metal Platform~D (Intel Xeon W-2255, 10 cores / 20 threads)
+        removes hypervisor noise, though it ran on a shared workstation with light
+        background activity ($\text{load average} \approx 3.5$).
   \item \textbf{Different query sets.} \texttt{std::\allowbreak uniform\_int\_\allowbreak distribution}
         differs between libc++ and libstdc++, so Platform~A answered other
         random queries than B and C. Speed-ups are computed per platform and
@@ -30,11 +31,12 @@
         and test runs of Platforms~A and~C in this report were taken with the
         earlier version. The final code also passes \texttt{test\_par} on an
         x86-64 Linux VM of the same kind as Platform~C.
-  \item \textbf{Thread start-up included.} Every parallel query creates and
-        joins its $T$ threads, which costs tens of microseconds per thread.
-        For short queries this is a noticeable part of the time and lowers
-        the measured speed-ups. A thread pool reused across queries would
-        remove it.
+  \item \textbf{Thread start-up and short-run spread.} In the standard sweep, every
+        parallel query creates and joins its $T$ threads and reports medians of 3
+        repetitions without spread. The extended Platform~D suite (\texttt{run\_ext.sh})
+        isolates search scaling via a persistent \texttt{ThreadPool}, pins threads to
+        physical cores first, and reports 7-repetition standard deviation, IQR, and
+        per-query $p_{95}$/$p_{99}$ latencies.
   \item \textbf{Graph built without OSMnx.} Because Nominatim was blocked
         and Overpass overloaded, the city graph comes from Geofabrik's extract
         with our own filter and simplification, cut by a bounding box rather

@@ -134,7 +134,7 @@ entries they would take hours.
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{figures/fig6_astar.pdf}
-\caption{Part 3: speed-up of parallel A* over sequential A* on the three
+\caption{Part 3: speed-up of parallel A* over sequential A* on the four
 platforms (rows) for three heuristics (columns); 20 long queries, median of 3
 runs. Solid lines: shared OPEN list (lists and heap with TTAS+backoff); dashed:
 \HDA. The shaded region marks oversubscription.}
@@ -173,13 +173,13 @@ backoff are the best, fine-grained is by far the worst.
 
 \textbf{Parallelism pays off only when expansions are expensive.} With the
 costly heuristic (right column), several versions beat sequential A*: \HDA{}
-reaches $1.35\times$ on Platform~A and $1.44\times$ on B (both at 4 threads),
-and the shared heap with backoff reaches $1.27\times$ on A and $1.67\times$ on
-C. On a large graph the lists also profit from more threads, because several
+reaches $1.35\times$ on Platform~A and $1.44\times$ on B (both at 4 threads) and
+$1.83\times$ on bare-metal Platform~D (at 10 physical cores),
+and the shared heap with backoff reaches $1.27\times$ on A, $1.67\times$ on C,
+and $1.49\times$ on D (at 10 threads). On a large graph the lists also profit from more threads, because several
 threads can walk the long list at the same time: on Platform~A the lazy list
-goes from $0.64\times$ with one thread to $1.11\times$ with 4, the first
-list-based parallel A* that is faster than sequential A*, and the optimistic
-list from $0.46\times$ to $0.99\times$. On Platform~A every version slows down
+goes from $0.64\times$ with one thread to $1.11\times$ with 4, and on uniform
+Platform~D it reaches $1.55\times$ at 10 threads, while the optimistic list reaches $0.99\times$ on A. On Platform~A every version slows down
 again beyond 4 threads, although the machine has 10 cores: only 4 of them are
 performance cores, and in a search that all threads share, the slowest thread
 holds the others back. \texttt{std::mutex} is never the better lock here (lazy
