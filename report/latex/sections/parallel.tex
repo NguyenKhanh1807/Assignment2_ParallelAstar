@@ -157,7 +157,7 @@ Euclidean or ALT heuristic, or with $h = 0$, one expansion takes about
 the cost of one operation on the shared OPEN list, plus the cache misses on
 its head. Adding threads therefore adds synchronization and cache-coherence
 traffic faster than it adds useful work. From 2 threads on, every version
-runs at 0.79$\times$ the speed of sequential A* or slower, on every platform
+runs at 0.83$\times$ the speed of sequential A* or slower, on every platform
 (Figure~\ref{fig:astar}, left and middle columns).
 
 \textbf{A sorted list is a poor priority queue on a large graph.} Even with
