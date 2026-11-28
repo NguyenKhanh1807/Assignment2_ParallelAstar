@@ -51,5 +51,17 @@ shared heap & 92 & 116 & 204 & 228 & 259 & 267 & \textbf{391} & \textbf{352} & \
 shared heap, \texttt{std::mutex} & 93 & 320 & 448 & 442 & 432 & 460 & \textbf{381} & 433 & 486 & 474 & 551 & 525 \\
 HDA* & 109 & 274 & 333 & 270 & 252 & 474 & \textbf{400} & 460 & 433 & \textbf{317} & 572 & 1888 \\
 HDA* + $f$-window & 124 & 279 & 322 & 282 & 196 & 382 & \textbf{407} & 468 & 422 & \textbf{323} & 508 & 985 \\
+\midrule
+\multicolumn{13}{l}{\emph{Platform E (Windows, i5-9300H, 4c/8t)}} \\
+sequential A* & 205 &  &  &  &  &  & 628 &  &  &  &  &  \\
+list: coarse & 676 & 717 & 917 & 1130 & -- & -- & 1096 & 1007 & 1170 & 1232 & -- & -- \\
+list: fine & 6089 & 5062 & 4129 & 4246 & -- & -- & 6959 & 5235 & 3941 & 3850 & -- & -- \\
+list: optimistic & 1033 & 669 & 616 & 576 & -- & -- & 1451 & 931 & \textbf{617} & \textbf{475} & -- & -- \\
+list: lazy & 705 & 521 & 402 & 404 & -- & -- & 1099 & 703 & \textbf{500} & \textbf{443} & -- & -- \\
+list: lazy, \texttt{std::mutex} & 821 & 594 & 604 & 769 & -- & -- & 1138 & 745 & 673 & 726 & -- & -- \\
+shared heap & 271 & 269 & 282 & 297 & -- & -- & 790 & \textbf{421} & \textbf{327} & \textbf{484} & -- & -- \\
+shared heap, \texttt{std::mutex} & 227 & 344 & 550 & 680 & -- & -- & 718 & \textbf{437} & \textbf{521} & 635 & -- & -- \\
+HDA* & 234 & 248 & 298 & 323 & -- & -- & \textbf{590} & \textbf{416} & \textbf{366} & \textbf{374} & -- & -- \\
+HDA* + $f$-window & 239 & 256 & 301 & 314 & -- & -- & 696 & \textbf{449} & \textbf{348} & \textbf{429} & -- & -- \\
 \bottomrule
 \end{tabular}

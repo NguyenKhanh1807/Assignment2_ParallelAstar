@@ -6,7 +6,8 @@ res, res2, out = sys.argv[1], sys.argv[2], sys.argv[3]; os.makedirs(out, exist_o
 PLAT = [('macos-native-apple-m5-10c', 'Platform A (macOS, Apple M5)'),
         ('apple-silicon-arm64-4vcpu', 'Platform B (Linux VM, 4 vCPU)'),
         ('cloud-x86-2vcpu', 'Platform C (Linux, Xeon, 2 vCPU)'),
-        ('linux-xeon-w2255-10c20t', 'Platform D (Linux, Xeon W-2255, 10c/20t)')]
+        ('linux-xeon-w2255-10c20t', 'Platform D (Linux, Xeon W-2255, 10c/20t)'),
+        ('windows-i5-9300h-4c8t', 'Platform E (Windows, i5-9300H, 4c/8t)')]
 TS = [1, 2, 4, 8, 16, 32]
 def rd(kind, p):
     d = pd.read_csv(f'{res2 if kind == "clist" else res}/{kind}_{p}.csv')
@@ -14,20 +15,20 @@ def rd(kind, p):
 def tt(s): return '\\texttt{' + s.replace('_', '\\_') + '}'
 
 # ---------- Table: sequential algorithms
-A, B, Cc, Dd = (rd('seq_heuristics', p) for p, _ in PLAT)
+A, B, Cc, Dd, Ee = (rd('seq_heuristics', p) for p, _ in PLAT)
 rows = [('length', 'dijkstra', 'Dijkstra'), ('length', 'astar-euclid', 'A*, Euclidean $h$'),
         ('length', 'astar-alt4', 'A*, ALT 4 landmarks'), ('length', 'astar-alt8', 'A*, ALT 8 landmarks'),
         ('length', 'astar-alt16', 'A*, ALT 16 landmarks'),
         ('time', 'dijkstra', 'Dijkstra'), ('time', 'astar-euclid', 'A*, Euclidean $h$')]
-L = ['\\begin{tabular}{ll rr rrrr}', '\\toprule',
-     ' & & \\multicolumn{2}{c}{expanded nodes} & \\multicolumn{4}{c}{time per query (ms)} \\\\',
-     '\\cmidrule(lr){3-4}\\cmidrule(lr){5-8}',
-     'Metric & Algorithm & A & B, C, D & A & B & C & D \\\\', '\\midrule']
+L = ['\\begin{tabular}{ll rr rrrrr}', '\\toprule',
+     ' & & \\multicolumn{2}{c}{expanded nodes} & \\multicolumn{5}{c}{time per query (ms)} \\\\',
+     '\\cmidrule(lr){3-4}\\cmidrule(lr){5-9}',
+     'Metric & Algorithm & A & B--E & A & B & C & D & E \\\\', '\\midrule']
 for i, (m, a, lab) in enumerate(rows):
     if i == 5: L.append('\\midrule')
     g = lambda d: d[(d.metric == m) & (d.algorithm == a) & (d.eps == 0)].iloc[0]
     L.append(f'{m if i in (0, 5) else ""} & {lab} & {g(A).avg_expanded:,.0f} & {g(B).avg_expanded:,.0f} & '
-             f'{g(A).avg_ms:.3f} & {g(B).avg_ms:.3f} & {g(Cc).avg_ms:.3f} & {g(Dd).avg_ms:.3f} \\\\'.replace(',', '{,}'))
+             f'{g(A).avg_ms:.3f} & {g(B).avg_ms:.3f} & {g(Cc).avg_ms:.3f} & {g(Dd).avg_ms:.3f} & {g(Ee).avg_ms:.3f} \\\\'.replace(',', '{,}'))
 L += ['\\bottomrule', '\\end{tabular}']
 open(f'{out}/tab_seq.tex', 'w').write('\n'.join(L) + '\n')
 

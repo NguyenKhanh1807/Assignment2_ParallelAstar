@@ -43,5 +43,15 @@ Optimistic, \texttt{std::mutex} & 1.1 & 0.9 & 1.1 & 1.9 & 3.4 & 3.4 & 15.4 & 3.7
 Optimistic, TTAS+backoff & 1.5 & 0.8 & 0.7 & 1.1 & 1.9 & 2.7 & 18.4 & 11.0 & 7.9 & 5.8 & 5.0 & 4.7 \\
 Lazy, \texttt{std::mutex} & 2.2 & 2.1 & 2.6 & 4.8 & 10.9 & 13.7 & 16.9 & 3.8 & 2.7 & 2.2 & 2.0 & 1.8 \\
 Lazy, TTAS+backoff & 3.0 & 2.0 & 1.7 & 2.4 & 5.7 & 13.3 & 22.0 & 12.4 & 8.8 & 7.4 & 6.0 & 5.5 \\
+\midrule
+\multicolumn{13}{l}{\emph{Platform E (Windows, i5-9300H, 4c/8t)}} \\
+Coarse, \texttt{std::mutex} & 2.5 & 1.1 & 0.9 & 0.8 & -- & -- & 11.4 & 6.6 & 4.6 & 5.1 & -- & -- \\
+Coarse, TTAS+backoff & 2.0 & 1.9 & 1.7 & 1.4 & -- & -- & 8.4 & 8.3 & 6.4 & 5.0 & -- & -- \\
+Fine-grained, \texttt{std::mutex} & 0.1 & 0.2 & 0.2 & 0.1 & -- & -- & 5.6 & 2.6 & 2.2 & 2.2 & -- & -- \\
+Fine-grained, TTAS+backoff & 0.1 & 0.1 & 0.1 & 0.1 & -- & -- & 3.9 & 3.9 & 3.3 & 2.8 & -- & -- \\
+Optimistic, \texttt{std::mutex} & 1.0 & 1.2 & 2.1 & 2.9 & -- & -- & 4.6 & 2.5 & 1.6 & 0.9 & -- & -- \\
+Optimistic, TTAS+backoff & 1.0 & 1.0 & 1.1 & 1.6 & -- & -- & 3.7 & 3.0 & 2.5 & 2.0 & -- & -- \\
+Lazy, \texttt{std::mutex} & 2.3 & 2.6 & 3.8 & 5.6 & -- & -- & 4.1 & 2.5 & 1.5 & 0.9 & -- & -- \\
+Lazy, TTAS+backoff & 2.3 & 3.0 & 2.9 & 4.6 & -- & -- & 4.3 & 3.5 & 3.3 & 2.4 & -- & -- \\
 \bottomrule
 \end{tabular}

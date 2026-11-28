@@ -1,16 +1,16 @@
-\begin{tabular}{ll rr rrrr}
+\begin{tabular}{ll rr rrrrr}
 \toprule
- & & \multicolumn{2}{c}{expanded nodes} & \multicolumn{4}{c}{time per query (ms)} \\
-\cmidrule(lr){3-4}\cmidrule(lr){5-8}
-Metric & Algorithm & A & B, C, D & A & B & C & D \\
+ & & \multicolumn{2}{c}{expanded nodes} & \multicolumn{5}{c}{time per query (ms)} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-9}
+Metric & Algorithm & A & B--E & A & B & C & D & E \\
 \midrule
-length & Dijkstra & 97{,}165 & 104{,}414 & 5.337 & 6.131 & 15.832 & 12.008 \\
- & A*{,} Euclidean $h$ & 22{,}521 & 25{,}806 & 2.159 & 2.656 & 6.366 & 5.337 \\
- & A*{,} ALT 4 landmarks & 11{,}628 & 12{,}096 & 1.428 & 1.504 & 4.109 & 3.417 \\
- & A*{,} ALT 8 landmarks & 7{,}922 & 8{,}696 & 1.161 & 1.271 & 3.751 & 2.833 \\
- & A*{,} ALT 16 landmarks & 6{,}424 & 7{,}026 & 1.365 & 1.349 & 3.727 & 2.945 \\
+length & Dijkstra & 97{,}165 & 104{,}414 & 5.337 & 6.131 & 15.832 & 12.008 & 16.438 \\
+ & A*{,} Euclidean $h$ & 22{,}521 & 25{,}806 & 2.159 & 2.656 & 6.366 & 5.337 & 12.683 \\
+ & A*{,} ALT 4 landmarks & 11{,}628 & 12{,}096 & 1.428 & 1.504 & 4.109 & 3.417 & 6.746 \\
+ & A*{,} ALT 8 landmarks & 7{,}922 & 8{,}696 & 1.161 & 1.271 & 3.751 & 2.833 & 6.072 \\
+ & A*{,} ALT 16 landmarks & 6{,}424 & 7{,}026 & 1.365 & 1.349 & 3.727 & 2.945 & 5.906 \\
 \midrule
-time & Dijkstra & 97{,}818 & 105{,}138 & 6.003 & 6.996 & 19.440 & 13.775 \\
- & A*{,} Euclidean $h$ & 66{,}190 & 71{,}671 & 5.877 & 7.111 & 18.710 & 17.077 \\
+time & Dijkstra & 97{,}818 & 105{,}138 & 6.003 & 6.996 & 19.440 & 13.775 & 18.646 \\
+ & A*{,} Euclidean $h$ & 66{,}190 & 71{,}671 & 5.877 & 7.111 & 18.710 & 17.077 & 33.800 \\
 \bottomrule
 \end{tabular}
