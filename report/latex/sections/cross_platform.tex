@@ -2,11 +2,11 @@
 \section{Cross-Platform Comparison}
 \label{sec:cross}
 
-The four platforms differ in core count (10, 4, 2, and 10c/20t), in core types (A mixes
+The five platforms differ in core count (10, 4, 2, 10c/20t, and 4c/8t), in core types (A mixes
 performance and efficiency cores; D has 10 uniform Xeon cores), in instruction set and memory model (ARMv8
-on A and B, x86-64 on C and D), and in operating system and C++ library (macOS with
-libc++ on A, Linux with libstdc++ on B, C, and D). Platforms A and B run on the
-same Apple M5 chip, natively and inside a virtual machine; Platform~D is bare-metal x86-64 hardware.
+on A and B, x86-64 on C, D, and E), and in operating system and C++ library (macOS with
+libc++ on A, Linux with libstdc++ on B, C, and D, Windows with MinGW-w64 libstdc++ on E). Platforms A and B run on the
+same Apple M5 chip, natively and inside a virtual machine; Platforms~D and~E are bare-metal x86-64 hardware.
 Table~\ref{tab:cross} summarizes the best result of each part on each platform,
 and Figure~\ref{fig:cross} compares how the key results scale.
 
@@ -16,16 +16,16 @@ and Figure~\ref{fig:cross} compares how the key results scale.
 \caption{Best result per platform. ``$\times$'' values are speed-ups over
 sequential A* on the same platform; thread counts in parentheses.}
 \label{tab:cross}
-\begin{tabularx}{\linewidth}{l YYYY}
+\begin{tabularx}{\linewidth}{l YYYYY}
 \toprule
- & \textbf{A: macOS, M5, 10c} & \textbf{B: Linux VM, 4 vCPU} & \textbf{C: Xeon VM, 2 vCPU} & \textbf{D: Xeon W-2255, 10c/20t} \\
+ & \textbf{A: macOS, M5, 10c} & \textbf{B: Linux VM, 4 vCPU} & \textbf{C: Xeon VM, 2 vCPU} & \textbf{D: Xeon W-2255, 10c/20t} & \textbf{E: Windows, i5-9300H, 4c/8t} \\
 \midrule
-Sequential A*, Euclidean $h$ (city graph) & 2.2\,ms / query & 2.7\,ms / query & 6.4\,ms / query & 5.3\,ms / query \\
-Best list, 90\% \texttt{contains} & lazy, \texttt{std::mutex}: 15.9\,Mops/s (16) & lazy, TTAS: 8.4\,Mops/s (8) & lazy, TTAS: 3.6\,Mops/s (2) & lazy, \texttt{std::mutex}: 13.7\,Mops/s (32) \\
-Best list, \texttt{add}/\texttt{removeMin}, $\ge 2$ threads & coarse, backoff: 39.1\,Mops/s (2) & coarse, backoff: 33.5\,Mops/s (2) & coarse, backoff: 19.7\,Mops/s (2) & coarse, backoff: 24.8\,Mops/s (2) \\
-Best parallel A*, Euclidean $h$ ($\ge 2$ threads) & $0.42\times$ (shared heap, 2) & $0.53\times$ (shared heap, 2) & $0.58\times$ (shared heap, \texttt{std::mutex}, 4) & $0.68\times$ (shared heap, 2) \\
-Best parallel A*, costly $h$ & $1.35\times$ (\HDA, 4) & $1.44\times$ (\HDA, 4) & $1.67\times$ (shared heap, 4) & $1.83\times$ (\HDA, 10) \\
-Best list-based parallel A*, costly $h$ & $1.11\times$ (lazy, 4) & $0.89\times$ (lazy, 8) & $0.74\times$ (lazy, 4) & $1.55\times$ (lazy, 10) \\
+Sequential A*, Euclidean $h$ (city graph) & 2.2\,ms / query & 2.7\,ms / query & 6.4\,ms / query & 5.3\,ms / query & 12.7\,ms / query \\
+Best list, 90\% \texttt{contains} & lazy, \texttt{std::mutex}: 15.9\,Mops/s (16) & lazy, TTAS: 8.4\,Mops/s (8) & lazy, TTAS: 3.6\,Mops/s (2) & lazy, \texttt{std::mutex}: 13.7\,Mops/s (32) & lazy, \texttt{std::mutex}: 5.6\,Mops/s (8) \\
+Best list, \texttt{add}/\texttt{removeMin}, $\ge 2$ threads & coarse, backoff: 39.1\,Mops/s (2) & coarse, backoff: 33.5\,Mops/s (2) & coarse, backoff: 19.7\,Mops/s (2) & coarse, backoff: 24.8\,Mops/s (2) & coarse, TTAS: 12.3\,Mops/s (2) \\
+Best parallel A*, Euclidean $h$ ($\ge 2$ threads) & $0.42\times$ (shared heap, 2) & $0.53\times$ (shared heap, 2) & $0.58\times$ (shared heap, \texttt{std::mutex}, 4) & $0.68\times$ (shared heap, 2) & $0.83\times$ (\HDA, 2) \\
+Best parallel A*, costly $h$ & $1.35\times$ (\HDA, 4) & $1.44\times$ (\HDA, 4) & $1.67\times$ (shared heap, 4) & $1.83\times$ (\HDA, 10) & $1.92\times$ (shared heap, 4) \\
+Best list-based parallel A*, costly $h$ & $1.11\times$ (lazy, 4) & $0.89\times$ (lazy, 8) & $0.74\times$ (lazy, 4) & $1.55\times$ (lazy, 10) & $1.42\times$ (lazy, 8) \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -56,9 +56,11 @@ slower than sequential A* on all three machines unless expansions are costly.
 \textbf{The granularity of the work matters more than the platform.} With a
 cheap heuristic, the best parallel A* is slower than sequential A* on every
 platform, and a 10-core laptop does no better than a 2-vCPU cloud machine.
-Only with the costly heuristic does parallel A* win on all three platforms
-(1.35--1.67$\times$). The best version differs per platform: \HDA, which has no
-shared queue, wins on the two ARM platforms; the shared heap wins on the x86 VM.
+Only with the costly heuristic does parallel A* win on all five platforms
+(1.35--1.92$\times$). The best version differs per platform: \HDA, which has no
+shared queue, wins on the two ARM platforms; the shared heap wins on the x86
+machines, most strongly ($1.92\times$ at 4 threads) on Platform~E, whose slow
+per-core performance makes the 400-flop heuristic relatively cheaper to replicate.
 
 \textbf{A larger graph helps the lists.} On the city graph OPEN is long, and
 several threads can walk it at the same time. The lazy list therefore gains
@@ -87,8 +89,9 @@ the hypervisor gives the VM more physical capacity than 2 vCPUs suggest; we did
 not verify this.
 
 \textbf{Memory model.} The same code passed every correctness test on the weak
-ARMv8 memory model (A, B) and on x86-64 TSO (C, D), and ThreadSanitizer found no
-data race. Because every shared access uses \texttt{std::atomic} with explicit
+ARMv8 memory model (A, B) and on x86-64 TSO (C, D, E), and ThreadSanitizer found no
+data race (ThreadSanitizer is not available for MinGW, so E is covered by the
+tests but not by the sanitizer). Because every shared access uses \texttt{std::atomic} with explicit
 acquire/release ordering, no platform-specific code was needed.
 
 \subsection{Extended Platform~D evaluation: pool, pinning, range, and window tuning}

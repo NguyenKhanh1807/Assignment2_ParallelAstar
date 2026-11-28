@@ -1,0 +1,5 @@
+platform,heuristic,avg_ms,avg_expanded,avg_reopened,avg_ratio,max_ratio,frac_suboptimal
+windows-i5-9300h-4c8t,exact length / vmax,6.6476,25438.9,0.0,1.000000,1.000000,0.0000
+windows-i5-9300h-4c8t,great-circle / vmax,30.1326,44366.9,0.0,1.000000,1.000000,0.0000
+windows-i5-9300h-4c8t,lecturer: great-circle / speed(t),40.8133,62804.2,45665.3,1.045464,1.287546,0.8738
+windows-i5-9300h-4c8t,zero (TD-Dijkstra),22.0887,104414.1,0.0,1.000000,1.000000,0.0000

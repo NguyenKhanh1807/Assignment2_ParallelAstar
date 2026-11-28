@@ -108,7 +108,7 @@ coarse list, the whole list), validates the pair as above, and unlinks the node.
         \texttt{-fsanitize=thread} report no data race.
 \end{itemize}
 
-All tests pass on all three platforms. Testing also exposed a performance
+All tests pass on all five platforms. Testing also exposed a performance
 problem: with plain TTAS locks and 8 threads on the 2 cores of Platform~C, the
 fine-grained list needed 97\,s for the test suite, against 1.6\,s with the
 backoff lock. A preempted thread holding a node lock blocks the whole

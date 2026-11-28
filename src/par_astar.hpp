@@ -35,7 +35,12 @@
 #include <sched.h>
 #include <unistd.h>
 #endif
+#ifdef _WIN32
+#include <windows.h>
+#include <psapi.h>
+#else
 #include <sys/resource.h>
+#endif
 #include "clist.hpp"
 #include "seq_astar.hpp"
 
@@ -60,6 +65,13 @@ inline Stats compute_stats(std::vector<double> v) {
     return {percentile_sorted(v, 0.5), mean, sd, v.front(), v.back(),
             percentile_sorted(v, 0.75) - percentile_sorted(v, 0.25)};
 }
+#ifdef _WIN32
+inline long max_rss_kb() {
+    PROCESS_MEMORY_COUNTERS pmc{};
+    if (!GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) return 0;
+    return (long)(pmc.PeakWorkingSetSize / 1024);
+}
+#else
 inline long max_rss_kb() {
     struct rusage ru{};
     if (getrusage(RUSAGE_SELF, &ru) != 0) return 0;
@@ -69,6 +81,7 @@ inline long max_rss_kb() {
     return (long)ru.ru_maxrss;
 #endif
 }
+#endif
 inline long current_rss_kb() {
 #ifdef __linux__
     long sz = 0, res = 0;

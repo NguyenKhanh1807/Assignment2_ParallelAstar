@@ -93,7 +93,7 @@ fig.tight_layout(); fig.savefig(f'{out}/fig4_dynamic.pdf'); plt.close(fig)
 MIX = [('read', '90% contains'), ('update', '50% contains / 50% add+remove'), ('pq', '50% add / 50% removeMin')]
 FAM = {'coarse': 0, 'fine': 1, 'optimistic': 2, 'lazy': 3}
 LS = {'mutex': '-', 'backoff': '--', 'ttas': ':'}
-fig, axs = plt.subplots(len(PLAT), 3, figsize=(9, 9.6), sharex=True)
+fig, axs = plt.subplots(len(PLAT), 3, figsize=(9, 12.0), sharex=True)
 for r, (p, name, hw) in enumerate(PLAT):
     c = rd('clist', p)
     for k, (mix, title) in enumerate(MIX):
@@ -113,7 +113,7 @@ legend_below(fig, axs, ncol=4); fig.tight_layout(rect=(0, 0.06, 1, 1)); fig.save
 VER = {'list-coarse-backoff': 'list: coarse', 'list-fine-backoff': 'list: fine', 'list-optimistic-backoff': 'list: optimistic',
        'list-lazy-backoff': 'list: lazy', 'heap-backoff': 'shared heap', 'hda': 'HDA*', 'hda-window': 'HDA* + f-window'}
 HS = [('zero', '$h = 0$ (parallel Dijkstra)'), ('euclid', 'Euclidean $h$'), ('euclid-costly', 'costly $h$ (400 flops / eval.)')]
-fig, axs = plt.subplots(len(PLAT), 3, figsize=(9, 9.6), sharex=True)
+fig, axs = plt.subplots(len(PLAT), 3, figsize=(9, 12.0), sharex=True)
 for r, (p, name, hw) in enumerate(PLAT):
     a = rd('astar', p)
     for k, (H, title) in enumerate(HS):

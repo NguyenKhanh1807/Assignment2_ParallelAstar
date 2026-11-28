@@ -3,6 +3,9 @@
 // (sequential or parallel) can be compared exactly, without FP tolerance.
 #pragma once
 #include <cmath>
+#ifndef M_PI  // strict-ANSI C++17 (e.g. MinGW with -std=c++17) omits the constant
+#define M_PI 3.14159265358979323846
+#endif
 #include <cstdint>
 #include <fstream>
 #include <sstream>

@@ -173,10 +173,11 @@ backoff are the best, fine-grained is by far the worst.
 
 \textbf{Parallelism pays off only when expansions are expensive.} With the
 costly heuristic (right column), several versions beat sequential A*: \HDA{}
-reaches $1.35\times$ on Platform~A and $1.44\times$ on B (both at 4 threads) and
+reaches $1.35\times$ on Platform~A, $1.44\times$ on B (both at 4 threads),
+$1.72\times$ on the Windows laptop~E (at 4 threads) and
 $1.83\times$ on bare-metal Platform~D (at 10 physical cores),
 and the shared heap with backoff reaches $1.27\times$ on A, $1.67\times$ on C,
-and $1.49\times$ on D (at 10 threads). On a large graph the lists also profit from more threads, because several
+$1.92\times$ on E (at 4 threads), and $1.49\times$ on D (at 10 threads). On a large graph the lists also profit from more threads, because several
 threads can walk the long list at the same time: on Platform~A the lazy list
 goes from $0.64\times$ with one thread to $1.11\times$ with 4, and on uniform
 Platform~D it reaches $1.55\times$ at 10 threads, while the optimistic list reaches $0.99\times$ on A. On Platform~A every version slows down
